@@ -1,0 +1,27 @@
+# core backend
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pydantic
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+
+# rag pipeline
+sentence-transformers
+qdrant-client
+pyyaml
+
+# llm
+anthropic
+openai
+
+# eval
+pandas
+
+# dev
+pytest
+httpx
+ruff
+
