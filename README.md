@@ -1,14 +1,16 @@
 # Coval
 
+[![CI](https://github.com/JYins/coval/actions/workflows/ci.yml/badge.svg)](https://github.com/JYins/coval/actions/workflows/ci.yml)
+
 > Shared electrons, shared context.
 
-Coval is the starting repo for an AI relationship memory backend. The idea is a bit unusual, I know, but I think there is a real use case here for dating, networking, and sales: if our apps can remember everything, maybe we can use that memory a little more intentionally too. This repo is backend-first on purpose. I want to get the retrieval loop right before pretending the whole product is finished.
+Coval is an AI relationship memory backend I am building step by step. The product idea is a little unconventional, I know, but I think there is a real use case here for dating, networking, and sales: if our tools can remember context better than we can, maybe that memory can help us show up a bit more thoughtfully too. I am keeping this backend-first on purpose. The main job right now is to make ingestion, retrieval, and grounded advice actually work before I worry about making it look polished.
 
 ## Why this name
 
 `Coval` comes from **covalent bond**.
 
-In chemistry, a covalent bond happens when two atoms share electrons. I liked that metaphor a lot. Human relationships are also kind of built on shared things: shared context, shared memories, shared jokes, shared history, shared information that only makes sense between two people.
+In chemistry, a covalent bond happens when two atoms share electrons. I liked that metaphor immediately. Human relationships are also built on shared things: shared context, shared memories, shared jokes, shared history, shared information that only makes sense between two people.
 
 So the naming logic is basically:
 
@@ -18,32 +20,70 @@ So the naming logic is basically:
 
 Maybe a little nerdy, but anyways I think it fits.
 
-## Why I am building this
+## Why I built this
 
-This project comes right after my RAG eval work. In that repo, I spent time benchmarking chunking strategies, embedding models, and retrieval setups because I wanted to understand what actually makes retrieval work, not just build another demo that looks smart on the surface.
+This repo comes directly after my RAG evaluation work in `rag-eval-pipeline`. In that project, I spent time benchmarking chunking strategies, embedding models, and retrieval setups because I wanted to understand what actually makes retrieval work instead of just building another shiny demo.
 
-The main lesson I took away was simple: if retrieval is weak, the LLM cannot really save you. Good context matters more than fancy prompting.
+The biggest lesson from that repo was simple: if retrieval is weak, the LLM cannot really save you. Good context matters more than fancy prompting.
 
-So Coval is the next step. Instead of stopping at evaluation, I want to apply those retrieval ideas to a real product shape:
+So Coval is the application layer of that work. Instead of stopping at evaluation, I want to apply those retrieval ideas to a real product shape:
 
 - ingest conversations
 - organize them around a person
 - retrieve the right memory fragments later
 - generate grounded advice or a quick briefing before you meet someone
 
-## What this repo is right now
+## What works today
 
-Right now this is only the first commit skeleton.
+The backend is still early, but it is not just a skeleton anymore.
 
-I am setting up the repo structure first so the project can grow in a more natural way:
+- SQLAlchemy models for users, persons, conversations, chunks, personality profiles, and interactions
+- PostgreSQL connection setup and `scripts/init_db.py`
+- FastAPI app entrypoint with register/login endpoints
+- JWT auth helpers and password hashing
+- person CRUD endpoints
+- conversation upload route for manual text and `txt/csv` file input
+- OCR and voice ingestion stubs with clear `NotImplementedError`
 
-- FastAPI backend
-- PostgreSQL models
-- Qdrant-based retrieval
-- config-driven RAG pipeline
-- personality / briefing logic later
+## Current Flow
 
-Some parts will stay simple for a while on purpose. OCR and voice input are in scope later, but not for the first step. I would rather get manual text input and retrieval working first than fake completeness.
+The product loop I am building toward is:
+
+1. take conversation input
+2. store the structured record and retrieval-friendly chunks
+3. retrieve the right context later and assemble a prompt for the LLM
+
+The LLM has no memory by itself. The backend has to build that memory layer.
+
+## Connection to RAG Eval
+
+I already cloned my earlier RAG eval repo locally while building this one, and that connection is intentional.
+
+- `cleaning.py` -> conversation text normalization here
+- `chunking.py` -> person-name-aware chunking here
+- `eval_metrics.py` -> retrieval quality tracking here
+- config-driven experiments -> same style later in this repo
+
+The sermon side of the eval project taught me that title-aware chunking matters a lot. In Coval, the "title" is basically the person's name.
+
+## Quick Start
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python scripts/init_db.py
+uvicorn src.api.app:app --reload
+```
+
+Once the server is running, current routes are:
+
+- `POST /api/users/register`
+- `POST /api/users/login`
+- `POST /api/persons`
+- `GET /api/persons`
+- `GET /api/persons/{person_id}`
+- `POST /api/conversations`
 
 ## Build Style
 
@@ -56,12 +96,13 @@ So I am building it commit by commit, with a little more human trace:
 - simple code first
 - honest TODOs when something is not built yet
 
-## Current Status
+## Limitations Right Now
 
-- repo bootstrapped
-- README v1 written
-- skeleton folders added
-- backend implementation starts next
+- RAG retrieval is not wired in yet
+- briefing and personality analysis are not wired in yet
+- tests are still lightweight and focused on route shape
+- OCR and voice are stubs for now
+- the current local environment still needs full dependency setup before everything can be run end to end
 
-More technical detail will come later when the app pieces are real enough to deserve it.
+That is okay for this stage. I would rather get the backbone right first.
 

@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
-from src.models import Base
-from src.models.database import DATABASE_URL, engine
-
-# import models so metadata sees all tables
-from src.models.chunk import Chunk  # noqa: F401
-from src.models.conversation import Conversation  # noqa: F401
-from src.models.interaction import Interaction  # noqa: F401
-from src.models.person import Person  # noqa: F401
-from src.models.personality_profile import PersonalityProfile  # noqa: F401
-from src.models.user import User  # noqa: F401
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 
 def ensure_database(url_text: str) -> None:
@@ -41,6 +37,17 @@ def ensure_database(url_text: str) -> None:
 
 
 def main() -> None:
+    from src.models import Base
+    from src.models.database import DATABASE_URL, engine
+
+    # import models so metadata sees all tables
+    from src.models.chunk import Chunk  # noqa: F401
+    from src.models.conversation import Conversation  # noqa: F401
+    from src.models.interaction import Interaction  # noqa: F401
+    from src.models.person import Person  # noqa: F401
+    from src.models.personality_profile import PersonalityProfile  # noqa: F401
+    from src.models.user import User  # noqa: F401
+
     ensure_database(DATABASE_URL)
     Base.metadata.create_all(bind=engine)
 
