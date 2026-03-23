@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.routes_ask import router as ask_router
 from src.api.routes_conversations import router as conversations_router
 from src.api.routes_persons import router as persons_router
 from src.api.routes_users import router as users_router
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(users_router)
 app.include_router(persons_router)
 app.include_router(conversations_router)
+app.include_router(ask_router)
 
 
 @app.get("/")
