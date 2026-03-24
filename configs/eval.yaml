@@ -1,3 +1,16 @@
-# commit 1 placeholder
-# eval config later
+data_path: data/eval/test_queries.json
+metrics_output: results/eval_metrics.csv
+per_query_output: results/eval_per_query.json
+model_name: paraphrase-multilingual-MiniLM-L12-v2
+top_k: 5
+ks:
+  - 1
+  - 3
+  - 5
+
+chunking:
+  strategy: sentence
+  max_sentences: 2
+  chunk_size: 120
+  overlap: 20
 

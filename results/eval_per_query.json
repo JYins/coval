@@ -1,2 +1,276 @@
-[]
-
+[
+  {
+    "person_name": "Alice",
+    "question": "Where should I take Alice next time?",
+    "gold_chunk_ids": [
+      "alice_0_0",
+      "alice_1_0"
+    ],
+    "retrieved_chunk_ids": [
+      "alice_0_0",
+      "alice_1_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "alice_0_0",
+        "score": 0.4821,
+        "chunk_text": "Alice: Alice likes jazz bars and live piano. She does not like crowded clubs."
+      },
+      {
+        "chunk_id": "alice_1_0",
+        "score": 0.4414,
+        "chunk_text": "Alice: She prefers Friday evening hangouts and quiet coffee chats."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 0.5,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  {
+    "person_name": "Alice",
+    "question": "What kind of place should I avoid with Alice?",
+    "gold_chunk_ids": [
+      "alice_0_0"
+    ],
+    "retrieved_chunk_ids": [
+      "alice_0_0",
+      "alice_1_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "alice_0_0",
+        "score": 0.6513,
+        "chunk_text": "Alice: Alice likes jazz bars and live piano. She does not like crowded clubs."
+      },
+      {
+        "chunk_id": "alice_1_0",
+        "score": 0.5416,
+        "chunk_text": "Alice: She prefers Friday evening hangouts and quiet coffee chats."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 1.0,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  {
+    "person_name": "Ben",
+    "question": "How should I prepare for a call with Ben?",
+    "gold_chunk_ids": [
+      "ben_0_0",
+      "ben_1_0"
+    ],
+    "retrieved_chunk_ids": [
+      "ben_0_0",
+      "ben_1_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "ben_0_0",
+        "score": 0.6137,
+        "chunk_text": "Ben: Ben prefers short morning calls. He dislikes long small talk before business."
+      },
+      {
+        "chunk_id": "ben_1_0",
+        "score": 0.4404,
+        "chunk_text": "Ben: He wants bullet point follow-ups and clear next steps after each meeting."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 0.5,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  {
+    "person_name": "Ben",
+    "question": "What communication style works best with Ben?",
+    "gold_chunk_ids": [
+      "ben_0_0",
+      "ben_1_0"
+    ],
+    "retrieved_chunk_ids": [
+      "ben_0_0",
+      "ben_1_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "ben_0_0",
+        "score": 0.6253,
+        "chunk_text": "Ben: Ben prefers short morning calls. He dislikes long small talk before business."
+      },
+      {
+        "chunk_id": "ben_1_0",
+        "score": 0.4613,
+        "chunk_text": "Ben: He wants bullet point follow-ups and clear next steps after each meeting."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 0.5,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  {
+    "person_name": "Carol",
+    "question": "What would be a good weekend plan with Carol?",
+    "gold_chunk_ids": [
+      "carol_0_0"
+    ],
+    "retrieved_chunk_ids": [
+      "carol_0_0",
+      "carol_1_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "carol_0_0",
+        "score": 0.5608,
+        "chunk_text": "Carol: Carol loves sunrise hikes and mountain views. She also likes homemade ramen."
+      },
+      {
+        "chunk_id": "carol_1_0",
+        "score": 0.4617,
+        "chunk_text": "Carol: She hates last-minute cancellations and gets annoyed by flaky planning."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 1.0,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  {
+    "person_name": "Carol",
+    "question": "What should I avoid doing with Carol?",
+    "gold_chunk_ids": [
+      "carol_1_0"
+    ],
+    "retrieved_chunk_ids": [
+      "carol_1_0",
+      "carol_0_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "carol_1_0",
+        "score": 0.7043,
+        "chunk_text": "Carol: She hates last-minute cancellations and gets annoyed by flaky planning."
+      },
+      {
+        "chunk_id": "carol_0_0",
+        "score": 0.5122,
+        "chunk_text": "Carol: Carol loves sunrise hikes and mountain views. She also likes homemade ramen."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 1.0,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  {
+    "person_name": "David",
+    "question": "How should I follow up with David after an event?",
+    "gold_chunk_ids": [
+      "david_1_0"
+    ],
+    "retrieved_chunk_ids": [
+      "david_1_0",
+      "david_0_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "david_1_0",
+        "score": 0.3982,
+        "chunk_text": "David: He appreciates LinkedIn follow-ups within twenty four hours and concrete collaboration ideas."
+      },
+      {
+        "chunk_id": "david_0_0",
+        "score": 0.3107,
+        "chunk_text": "David: David works in fintech and likes talking about AI tools for operations."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 1.0,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  {
+    "person_name": "David",
+    "question": "What topic is safe to open with when I talk to David again?",
+    "gold_chunk_ids": [
+      "david_0_0"
+    ],
+    "retrieved_chunk_ids": [
+      "david_0_0",
+      "david_1_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "david_0_0",
+        "score": 0.4798,
+        "chunk_text": "David: David works in fintech and likes talking about AI tools for operations."
+      },
+      {
+        "chunk_id": "david_1_0",
+        "score": 0.43,
+        "chunk_text": "David: He appreciates LinkedIn follow-ups within twenty four hours and concrete collaboration ideas."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 1.0,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  {
+    "person_name": "Emily",
+    "question": "What kind of dinner plan would Emily probably enjoy?",
+    "gold_chunk_ids": [
+      "emily_0_0"
+    ],
+    "retrieved_chunk_ids": [
+      "emily_0_0",
+      "emily_1_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "emily_0_0",
+        "score": 0.4994,
+        "chunk_text": "Emily: Emily likes tea, park walks, and quiet restaurants. She speaks Chinese with her parents."
+      },
+      {
+        "chunk_id": "emily_1_0",
+        "score": 0.3506,
+        "chunk_text": "Emily: She values checking in on health first before talking about work."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 1.0,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  },
+  {
+    "person_name": "Emily",
+    "question": "What should I remember before I catch up with Emily?",
+    "gold_chunk_ids": [
+      "emily_0_0",
+      "emily_1_0"
+    ],
+    "retrieved_chunk_ids": [
+      "emily_0_0",
+      "emily_1_0"
+    ],
+    "retrieved_chunks": [
+      {
+        "chunk_id": "emily_0_0",
+        "score": 0.4951,
+        "chunk_text": "Emily: Emily likes tea, park walks, and quiet restaurants. She speaks Chinese with her parents."
+      },
+      {
+        "chunk_id": "emily_1_0",
+        "score": 0.362,
+        "chunk_text": "Emily: She values checking in on health first before talking about work."
+      }
+    ],
+    "mrr": 1.0,
+    "recall@1": 0.5,
+    "recall@3": 1.0,
+    "recall@5": 1.0
+  }
+]

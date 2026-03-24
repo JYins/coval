@@ -1,2 +1,5 @@
 metric,value
-
+mrr,1.0
+recall@1,0.8
+recall@3,1.0
+recall@5,1.0

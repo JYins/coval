@@ -1,2 +1,113 @@
-[]
+[
+  {
+    "person_name": "Alice",
+    "relationship_type": "friend",
+    "notes": "Met at a jazz meetup.",
+    "conversations": [
+      "Alice likes jazz bars and live piano. She does not like crowded clubs.",
+      "She prefers Friday evening hangouts and quiet coffee chats."
+    ],
+    "question": "Where should I take Alice next time?",
+    "gold_chunk_ids": ["alice_0_0", "alice_1_0"]
+  },
+  {
+    "person_name": "Alice",
+    "relationship_type": "friend",
+    "notes": "Met at a jazz meetup.",
+    "conversations": [
+      "Alice likes jazz bars and live piano. She does not like crowded clubs.",
+      "She prefers Friday evening hangouts and quiet coffee chats."
+    ],
+    "question": "What kind of place should I avoid with Alice?",
+    "gold_chunk_ids": ["alice_0_0"]
+  },
+  {
+    "person_name": "Ben",
+    "relationship_type": "client",
+    "notes": "Startup founder client.",
+    "conversations": [
+      "Ben prefers short morning calls. He dislikes long small talk before business.",
+      "He wants bullet point follow-ups and clear next steps after each meeting."
+    ],
+    "question": "How should I prepare for a call with Ben?",
+    "gold_chunk_ids": ["ben_0_0", "ben_1_0"]
+  },
+  {
+    "person_name": "Ben",
+    "relationship_type": "client",
+    "notes": "Startup founder client.",
+    "conversations": [
+      "Ben prefers short morning calls. He dislikes long small talk before business.",
+      "He wants bullet point follow-ups and clear next steps after each meeting."
+    ],
+    "question": "What communication style works best with Ben?",
+    "gold_chunk_ids": ["ben_0_0", "ben_1_0"]
+  },
+  {
+    "person_name": "Carol",
+    "relationship_type": "romantic",
+    "notes": "Met through friends.",
+    "conversations": [
+      "Carol loves sunrise hikes and mountain views. She also likes homemade ramen.",
+      "She hates last-minute cancellations and gets annoyed by flaky planning."
+    ],
+    "question": "What would be a good weekend plan with Carol?",
+    "gold_chunk_ids": ["carol_0_0"]
+  },
+  {
+    "person_name": "Carol",
+    "relationship_type": "romantic",
+    "notes": "Met through friends.",
+    "conversations": [
+      "Carol loves sunrise hikes and mountain views. She also likes homemade ramen.",
+      "She hates last-minute cancellations and gets annoyed by flaky planning."
+    ],
+    "question": "What should I avoid doing with Carol?",
+    "gold_chunk_ids": ["carol_1_0"]
+  },
+  {
+    "person_name": "David",
+    "relationship_type": "networking",
+    "notes": "Met at a fintech event.",
+    "conversations": [
+      "David works in fintech and likes talking about AI tools for operations.",
+      "He appreciates LinkedIn follow-ups within twenty four hours and concrete collaboration ideas."
+    ],
+    "question": "How should I follow up with David after an event?",
+    "gold_chunk_ids": ["david_1_0"]
+  },
+  {
+    "person_name": "David",
+    "relationship_type": "networking",
+    "notes": "Met at a fintech event.",
+    "conversations": [
+      "David works in fintech and likes talking about AI tools for operations.",
+      "He appreciates LinkedIn follow-ups within twenty four hours and concrete collaboration ideas."
+    ],
+    "question": "What topic is safe to open with when I talk to David again?",
+    "gold_chunk_ids": ["david_0_0"]
+  },
+  {
+    "person_name": "Emily",
+    "relationship_type": "family",
+    "notes": "Family catch-up context.",
+    "conversations": [
+      "Emily likes tea, park walks, and quiet restaurants. She speaks Chinese with her parents.",
+      "She values checking in on health first before talking about work."
+    ],
+    "question": "What kind of dinner plan would Emily probably enjoy?",
+    "gold_chunk_ids": ["emily_0_0"]
+  },
+  {
+    "person_name": "Emily",
+    "relationship_type": "family",
+    "notes": "Family catch-up context.",
+    "conversations": [
+      "Emily likes tea, park walks, and quiet restaurants. She speaks Chinese with her parents.",
+      "She values checking in on health first before talking about work."
+    ],
+    "question": "What should I remember before I catch up with Emily?",
+    "gold_chunk_ids": ["emily_0_0", "emily_1_0"]
+  }
+]
 
