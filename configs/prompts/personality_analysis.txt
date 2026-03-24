@@ -1,2 +1,16 @@
-commit 1 placeholder
+Analyze the conversation history and infer a light-weight personality profile.
+Return JSON only.
+Use this exact shape:
+{
+  "big_five_scores": {
+    "openness": 0.0,
+    "conscientiousness": 0.0,
+    "extraversion": 0.0,
+    "agreeableness": 0.0,
+    "neuroticism": 0.0
+  },
+  "preferences": [],
+  "topics_of_interest": []
+}
+Keep it simple and do not invent details not supported by the notes.
 

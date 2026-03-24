@@ -1,2 +1,12 @@
-commit 1 placeholder
+Analyze the person's communication style from the conversation history.
+Return JSON only.
+Use this exact shape:
+{
+  "communication_style": {
+    "directness": "",
+    "tone": "",
+    "pace": ""
+  }
+}
+Keep it practical. If the signal is weak, use balanced / warm / steady.
 

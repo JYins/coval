@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from src.analysis.personality import refresh_personality_profile
 from src.api.deps import get_current_user
 from src.ingestion.file_upload import build_file_upload_conversation
 from src.ingestion.manual import build_manual_conversation
@@ -111,5 +112,6 @@ async def upload_conversation(
         raise HTTPException(status_code=501, detail=str(exc))
 
     conversation = save_conversation(db, person, payload)
+    refresh_personality_profile(db, person)
     return build_conversation_response(conversation)
 

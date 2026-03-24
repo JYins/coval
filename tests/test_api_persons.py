@@ -114,3 +114,42 @@ def test_get_person_not_found(monkeypatch):
     assert response.status_code == 404
     assert response.json()["detail"] == "person not found"
 
+
+def test_get_person_briefing(monkeypatch):
+    user = override_user()
+    person = SimpleNamespace(
+        id=uuid4(),
+        user_id=user.id,
+        name="Alice",
+        relationship_type="friend",
+        notes="met at school",
+        first_met=None,
+        last_contact=None,
+    )
+
+    monkeypatch.setattr(routes_persons, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(
+        routes_persons,
+        "generate_person_briefing",
+        lambda db, person, top_k=None: {
+            "briefing": "Start with music and keep the tone relaxed.",
+            "retrieved_chunks": [
+                {
+                    "chunk_id": "chunk-1",
+                    "chunk_text": "Alice: She likes jazz and quiet bars.",
+                    "score": 0.88,
+                    "rank": 1,
+                }
+            ],
+        },
+    )
+    app.dependency_overrides[get_current_user] = lambda: user
+
+    response = client.get(f"/api/persons/{person.id}/briefing")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["person_id"] == str(person.id)
+    assert "music" in body["briefing"]
+    assert body["retrieved_chunks"][0]["chunk_id"] == "chunk-1"
+

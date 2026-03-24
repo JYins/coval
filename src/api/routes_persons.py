@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from src.analysis.briefing import generate_person_briefing
 from src.api.deps import get_current_user
 from src.models.database import get_db
 from src.models.person import Person
@@ -34,6 +35,19 @@ class PersonResponse(BaseModel):
     notes: str | None = None
     first_met: datetime | None = None
     last_contact: datetime | None = None
+
+
+class BriefingChunkResponse(BaseModel):
+    chunk_id: str
+    chunk_text: str
+    score: float
+    rank: int
+
+
+class BriefingResponse(BaseModel):
+    person_id: UUID
+    briefing: str
+    retrieved_chunks: list[BriefingChunkResponse]
 
 
 def normalize_person_name(name: str) -> str:
@@ -118,4 +132,35 @@ def get_person(
     if person is None:
         raise HTTPException(status_code=404, detail="person not found")
     return build_person_response(person)
+
+
+@router.get("/{person_id}/briefing", response_model=BriefingResponse)
+def get_person_briefing(
+    person_id: UUID,
+    top_k: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> BriefingResponse:
+    person = get_user_person(db, current_user.id, person_id)
+    if person is None:
+        raise HTTPException(status_code=404, detail="person not found")
+
+    try:
+        result = generate_person_briefing(db, person, top_k=top_k)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return BriefingResponse(
+        person_id=person.id,
+        briefing=str(result["briefing"]),
+        retrieved_chunks=[
+            BriefingChunkResponse(
+                chunk_id=str(row["chunk_id"]),
+                chunk_text=str(row["chunk_text"]),
+                score=float(row.get("score", 0.0)),
+                rank=int(row["rank"]),
+            )
+            for row in list(result["retrieved_chunks"])
+        ],
+    )
 

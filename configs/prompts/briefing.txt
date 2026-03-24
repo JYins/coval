@@ -1,2 +1,5 @@
-commit 1 placeholder
+Write a short pre-meeting briefing.
+The goal is to help me remember the person's vibe, likely preferences, and one or two safe opener ideas.
+Keep it concise and natural, around 4-6 sentences.
+Do not sound robotic.
 
