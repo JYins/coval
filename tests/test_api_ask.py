@@ -95,3 +95,64 @@ def test_ask_question_person_not_found(monkeypatch):
     assert response.status_code == 404
     assert response.json()["detail"] == "person not found"
 
+
+def test_ask_question_passes_top_k(monkeypatch):
+    user = override_user()
+    person = SimpleNamespace(id=uuid4(), user_id=user.id, name="Ben")
+    seen = {}
+
+    monkeypatch.setattr(routes_ask, "get_user_person", lambda db, user_id, person_id: person)
+
+    def fake_run_person_question(db, person, question, top_k=None):
+        seen["top_k"] = top_k
+        return {
+            "answer": "Keep it short and direct.",
+            "retrieved_chunks": [],
+        }
+
+    monkeypatch.setattr(routes_ask, "run_person_question", fake_run_person_question)
+    monkeypatch.setattr(
+        routes_ask,
+        "save_interaction",
+        lambda db, person_id, interaction_type, answer: SimpleNamespace(id=uuid4()),
+    )
+    app.dependency_overrides[get_current_user] = lambda: user
+
+    response = client.post(
+        "/api/ask",
+        json={
+            "person_id": str(person.id),
+            "question": "How should I talk to Ben?",
+            "top_k": 4,
+        },
+    )
+
+    assert response.status_code == 200
+    assert seen["top_k"] == 4
+
+
+def test_ask_question_returns_bad_request(monkeypatch):
+    user = override_user()
+    person = SimpleNamespace(id=uuid4(), user_id=user.id, name="Emily")
+
+    monkeypatch.setattr(routes_ask, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(
+        routes_ask,
+        "run_person_question",
+        lambda db, person, question, top_k=None: (_ for _ in ()).throw(
+            ValueError("person has no conversations yet")
+        ),
+    )
+    app.dependency_overrides[get_current_user] = lambda: user
+
+    response = client.post(
+        "/api/ask",
+        json={
+            "person_id": str(person.id),
+            "question": "Any reminder before the catch-up?",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "person has no conversations yet"
+

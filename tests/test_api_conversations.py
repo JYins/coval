@@ -126,3 +126,24 @@ def test_upload_voice_not_ready(monkeypatch):
     assert response.status_code == 501
     assert response.json()["detail"] == "voice ingestion is not built yet"
 
+
+def test_upload_file_missing_attachment(monkeypatch):
+    user = override_user()
+    person = SimpleNamespace(id=uuid4(), user_id=user.id)
+
+    monkeypatch.setattr(routes_conversations, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(routes_conversations, "refresh_personality_profile", lambda db, person_row: None)
+    app.dependency_overrides[get_current_user] = lambda: user
+
+    response = client.post(
+        "/api/conversations",
+        data={
+            "person_id": str(person.id),
+            "source_type": "file_upload",
+            "language": "en",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "file is required for file_upload"
+
