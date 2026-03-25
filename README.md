@@ -2,107 +2,187 @@
 
 [![CI](https://github.com/JYins/coval/actions/workflows/ci.yml/badge.svg)](https://github.com/JYins/coval/actions/workflows/ci.yml)
 
-> Shared electrons, shared context.
+Coval is an AI-powered relationship memory backend I am building step by step. The idea is a bit unusual, I know, but I think there is a real use case here for dating, sales, and active networking: if we can retrieve the right personal context at the right time, maybe we can show up a little better in real conversations. This repo is backend-first on purpose. I want the ingestion + retrieval + prompt assembly loop to be real before pretending the whole product is done.
 
-Coval is an AI relationship memory backend I am building step by step. The product idea is a little unconventional, I know, but I think there is a real use case here for dating, networking, and sales: if our tools can remember context better than we can, maybe that memory can help us show up a bit more thoughtfully too. I am keeping this backend-first on purpose. The main job right now is to make ingestion, retrieval, and grounded advice actually work before I worry about making it look polished.
+## Why I Built This
 
-## Why this name
+I built this after spending time on `rag-eval-pipeline`, where I benchmarked chunking strategies, embedding models, and retrieval setups to understand what actually improves retrieval quality. That project taught me a very practical lesson: if retrieval is weak, the LLM cannot really save the answer.
 
-`Coval` comes from **covalent bond**.
+So Coval is the next layer up. Instead of stopping at eval, I wanted to apply those retrieval lessons to a product shape that feels more personal and more concrete:
 
-In chemistry, a covalent bond happens when two atoms share electrons. I liked that metaphor immediately. Human relationships are also built on shared things: shared context, shared memories, shared jokes, shared history, shared information that only makes sense between two people.
-
-So the naming logic is basically:
-
-- covalent bond -> shared electrons
-- Coval -> shared context
-- better shared context -> hopefully better conversations
-
-Maybe a little nerdy, but anyways I think it fits.
-
-## Why I built this
-
-This repo comes directly after my RAG evaluation work in `rag-eval-pipeline`. In that project, I spent time benchmarking chunking strategies, embedding models, and retrieval setups because I wanted to understand what actually makes retrieval work instead of just building another shiny demo.
-
-The biggest lesson from that repo was simple: if retrieval is weak, the LLM cannot really save you. Good context matters more than fancy prompting.
-
-So Coval is the application layer of that work. Instead of stopping at evaluation, I want to apply those retrieval ideas to a real product shape:
-
-- ingest conversations
+- ingest conversation notes
 - organize them around a person
-- retrieve the right memory fragments later
-- generate grounded advice or a quick briefing before you meet someone
+- retrieve the right context later
+- generate grounded advice or a quick briefing before a meeting
 
-## What works today
+The name comes from `covalent bond`. In chemistry, a covalent bond is about shared electrons. Here the metaphor is shared context: two people build a relationship through shared memories, shared details, shared information. A little nerdy maybe, but anyways I still think it fits.
 
-The backend is still early, but it is not just a skeleton anymore.
+## What It Does
 
-- SQLAlchemy models for users, persons, conversations, chunks, personality profiles, and interactions
-- PostgreSQL connection setup and `scripts/init_db.py`
-- FastAPI app entrypoint with register/login endpoints
-- JWT auth helpers and password hashing
-- person CRUD endpoints
-- conversation upload route for manual text and `txt/csv` file input
-- OCR and voice ingestion stubs with clear `NotImplementedError`
+- creates users and person profiles
+- ingests conversation data from manual text or `txt/csv` upload
+- chunks conversation text with person-name-aware prefixing
+- runs dense retrieval over conversation chunks
+- assembles prompts for Q&A and briefing generation
+- stores lightweight personality profiles and communication-style summaries
+- runs a small retrieval eval set with `Recall@K` and `MRR`
 
-## Current Flow
+## Architecture Overview
 
-The product loop I am building toward is:
+The product loop is simple:
 
-1. take conversation input
-2. store the structured record and retrieval-friendly chunks
-3. retrieve the right context later and assemble a prompt for the LLM
+1. user data goes into structured storage and retrieval-friendly chunks
+2. RAG retrieves relevant context and assembles a prompt
+3. the LLM answers with that supplied context, not with hidden memory
 
-The LLM has no memory by itself. The backend has to build that memory layer.
+Storage split:
 
-## Connection to RAG Eval
+- PostgreSQL stores users, persons, conversations, chunks, personality profiles, and interaction logs
+- Qdrant is the vector-store target for chunk embeddings
+- current local default config uses in-memory dense search for easier development, but the Qdrant wrapper is already in the repo
 
-I already cloned my earlier RAG eval repo locally while building this one, and that connection is intentional.
+## Connection to RAG Eval Pipeline
 
-- `cleaning.py` -> conversation text normalization here
-- `chunking.py` -> person-name-aware chunking here
-- `eval_metrics.py` -> retrieval quality tracking here
-- config-driven experiments -> same style later in this repo
+This repo is not meant to stand alone from my retrieval work. It is the application layer of that project.
 
-The sermon side of the eval project taught me that title-aware chunking matters a lot. In Coval, the "title" is basically the person's name.
+| RAG Eval module | Coval module | Transfer |
+|---|---|---|
+| `cleaning.py` | `src/rag/cleaning.py` | adapted for conversation cleanup |
+| `chunking.py` | `src/rag/chunking.py` | reused and adjusted for person-level chunking |
+| `eval_metrics.py` | `src/rag/eval_metrics.py` | reused for chunk-level retrieval metrics |
+| dense retrieval flow | `src/rag/retriever.py` | simplified product-side version |
+| sermon title-aware insight | person-name prefix on chunks | key idea transfer |
+
+The sermon experiments in `rag-eval-pipeline` showed me that title-aware chunking helps retrieval a lot. In this product, the "title" is basically the person's name.
+
+## Project Structure
+
+```text
+coval/
+|-- README.md
+|-- requirements.txt
+|-- .github/workflows/ci.yml
+|-- configs/
+|   |-- default.yaml
+|   |-- eval.yaml
+|   `-- prompts/
+|-- src/
+|   |-- api/
+|   |-- analysis/
+|   |-- ingestion/
+|   |-- llm/
+|   |-- models/
+|   `-- rag/
+|-- scripts/
+|   |-- init_db.py
+|   |-- run_eval.py
+|   `-- seed_data.py
+|-- tests/
+|-- data/eval/
+|-- results/
+`-- docs/
+```
 
 ## Quick Start
+
+Local setup:
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 python scripts/init_db.py
+python scripts/seed_data.py
 uvicorn src.api.app:app --reload
 ```
 
-Once the server is running, current routes are:
+Run retrieval eval:
 
-- `POST /api/users/register`
-- `POST /api/users/login`
-- `POST /api/persons`
-- `GET /api/persons`
-- `GET /api/persons/{person_id}`
-- `POST /api/conversations`
+```bash
+python scripts/run_eval.py --config configs/eval.yaml
+```
 
-## Build Style
+Notes:
 
-I do not want this repo to look like AI dumped a whole startup codebase in one shot.
+- `scripts/init_db.py` expects PostgreSQL from `DATABASE_URL`
+- the current default retrieval backend in `configs/default.yaml` is `memory`
+- switch to Qdrant by changing config and running a local Qdrant instance
 
-So I am building it commit by commit, with a little more human trace:
+## API Endpoints
 
-- small steps
-- clear folder growth
-- simple code first
-- honest TODOs when something is not built yet
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/users/register` | create account |
+| `POST` | `/api/users/login` | get JWT token |
+| `POST` | `/api/persons` | create a person profile |
+| `GET` | `/api/persons` | list persons for current user |
+| `GET` | `/api/persons/{person_id}` | get person detail |
+| `GET` | `/api/persons/{person_id}/briefing` | generate pre-meeting briefing |
+| `POST` | `/api/conversations` | upload manual or file-based conversation |
+| `POST` | `/api/ask` | ask a question about a person with RAG |
 
-## Limitations Right Now
+## Configuration
 
-- RAG retrieval is not wired in yet
-- briefing and personality analysis are not wired in yet
-- tests are still lightweight and focused on route shape
-- OCR and voice are stubs for now
-- the current local environment still needs full dependency setup before everything can be run end to end
+Two YAML files matter right now:
 
-That is okay for this stage. I would rather get the backbone right first.
+- `configs/default.yaml`: main backend settings for chunking, embedding model, vector backend, and LLM provider
+- `configs/eval.yaml`: eval dataset path, metric outputs, chunking config, and top-k settings
 
+The backend is intentionally config-light for now. I wanted the pipeline logic to stay easy to explain in an interview before adding too many toggles.
+
+## Database Schema
+
+| Table | Purpose |
+|---|---|
+| `users` | account records and auth identity |
+| `persons` | one row per tracked relationship |
+| `conversations` | raw conversation inputs with source and language |
+| `chunks` | retrieval-ready text segments |
+| `personality_profiles` | lightweight structured personality summary |
+| `interactions` | Q&A / briefing history and future feedback hooks |
+
+## Evaluation
+
+Current sample eval results from `results/eval_metrics.csv`:
+
+- `MRR = 1.0`
+- `Recall@1 = 0.8`
+- `Recall@3 = 1.0`
+- `Recall@5 = 1.0`
+
+This eval is small on purpose right now. It is mainly there to prove that the retrieval layer is being checked, not just assumed.
+
+Artifacts:
+
+- `results/eval_metrics.csv`
+- `results/eval_per_query.json`
+
+## Design Decisions
+
+- backend first: I care more about retrieval quality than UI at this stage
+- simple route layer: FastAPI routes stay thin and call helper functions
+- person-name-aware chunking: this is the most direct transfer from the sermon retrieval findings
+- mock LLM mode: local wiring should still run before real API keys are plugged in
+- honest scope: OCR and voice are still stubs because the core retrieval loop matters more first
+
+More detail lives in `docs/design_decisions.md`.
+
+## Limitations
+
+- Qdrant support exists, but the default local path still uses in-memory dense retrieval
+- personality analysis is intentionally lightweight and still early
+- the eval set is small and hand-labeled
+- no frontend yet
+- OCR and voice ingestion are not implemented beyond clear stubs
+
+## Future Work
+
+- switch the main path from local memory retrieval to persistent Qdrant indexing
+- add richer chunk persistence during ingestion instead of only runtime chunk building
+- improve personality profile refresh logic with better prompts and stronger parsing
+- support voice transcription and screenshot OCR
+- build the separate medical-profile follow-up repo on top of the shared backend ideas
+
+## License
+
+No formal license file has been added yet. For now this repo is mainly a portfolio / learning project and code sample.
