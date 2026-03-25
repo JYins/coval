@@ -185,4 +185,4 @@ More detail lives in `docs/design_decisions.md`.
 
 ## License
 
-No formal license file has been added yet. For now this repo is mainly a portfolio / learning project and code sample.
+This repo is licensed under the MIT License. See `LICENSE` for the full text.
