@@ -36,9 +36,15 @@ def teardown_module():
 
 def test_upload_manual_conversation(monkeypatch):
     user = override_user()
-    person = SimpleNamespace(id=uuid4(), user_id=user.id)
+    person = SimpleNamespace(id=uuid4(), user_id=user.id, name="Alice")
+    seen = {}
 
     monkeypatch.setattr(routes_conversations, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(
+        routes_conversations,
+        "save_chunks_for_conversation",
+        lambda db, conversation, person_name: seen.update({"name": person_name, "conversation_id": conversation.id}),
+    )
     monkeypatch.setattr(routes_conversations, "refresh_personality_profile", lambda db, person_row: None)
 
     def fake_save_conversation(db, person_row, payload):
@@ -68,13 +74,16 @@ def test_upload_manual_conversation(monkeypatch):
     body = response.json()
     assert body["source_type"] == "manual"
     assert body["raw_content"] == "We talked about hiking"
+    assert seen["name"] == "Alice"
+    assert "conversation_id" in seen
 
 
 def test_upload_txt_file_conversation(monkeypatch):
     user = override_user()
-    person = SimpleNamespace(id=uuid4(), user_id=user.id)
+    person = SimpleNamespace(id=uuid4(), user_id=user.id, name="Bob")
 
     monkeypatch.setattr(routes_conversations, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(routes_conversations, "save_chunks_for_conversation", lambda db, conversation, person_name: None)
     monkeypatch.setattr(routes_conversations, "refresh_personality_profile", lambda db, person_row: None)
 
     def fake_save_conversation(db, person_row, payload):
@@ -108,9 +117,10 @@ def test_upload_txt_file_conversation(monkeypatch):
 
 def test_upload_voice_not_ready(monkeypatch):
     user = override_user()
-    person = SimpleNamespace(id=uuid4(), user_id=user.id)
+    person = SimpleNamespace(id=uuid4(), user_id=user.id, name="Carol")
 
     monkeypatch.setattr(routes_conversations, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(routes_conversations, "save_chunks_for_conversation", lambda db, conversation, person_name: None)
     monkeypatch.setattr(routes_conversations, "refresh_personality_profile", lambda db, person_row: None)
     app.dependency_overrides[get_current_user] = lambda: user
 
@@ -129,9 +139,10 @@ def test_upload_voice_not_ready(monkeypatch):
 
 def test_upload_file_missing_attachment(monkeypatch):
     user = override_user()
-    person = SimpleNamespace(id=uuid4(), user_id=user.id)
+    person = SimpleNamespace(id=uuid4(), user_id=user.id, name="David")
 
     monkeypatch.setattr(routes_conversations, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(routes_conversations, "save_chunks_for_conversation", lambda db, conversation, person_name: None)
     monkeypatch.setattr(routes_conversations, "refresh_personality_profile", lambda db, person_row: None)
     app.dependency_overrides[get_current_user] = lambda: user
 

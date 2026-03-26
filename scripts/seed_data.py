@@ -96,6 +96,7 @@ def main() -> None:
     from src.models.database import SessionLocal
     from src.models.person import Person
     from src.models.user import User
+    from src.rag.indexing import save_chunks_for_conversation
 
     db = SessionLocal()
     try:
@@ -147,8 +148,10 @@ def main() -> None:
                         raw_content=str(item["raw_content"]),
                     )
                     db.add(conversation)
+                    db.commit()
+                    db.refresh(conversation)
+                    save_chunks_for_conversation(db, conversation, person.name)
                     created_conversations += 1
-                db.commit()
 
             refresh_personality_profile(db, person)
 

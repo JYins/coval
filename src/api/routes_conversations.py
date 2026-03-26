@@ -19,6 +19,7 @@ from src.models.conversation import Conversation
 from src.models.database import get_db
 from src.models.person import Person
 from src.models.user import User
+from src.rag.indexing import save_chunks_for_conversation
 
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
@@ -112,6 +113,7 @@ async def upload_conversation(
         raise HTTPException(status_code=501, detail=str(exc))
 
     conversation = save_conversation(db, person, payload)
+    save_chunks_for_conversation(db, conversation, person.name)
     refresh_personality_profile(db, person)
     return build_conversation_response(conversation)
 
