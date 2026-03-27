@@ -9,8 +9,9 @@ from sqlalchemy.orm import Session
 from src.models.chunk import Chunk
 from src.models.conversation import Conversation
 from src.rag.chunking import chunk_conversation
-from src.rag.embedding import DEFAULT_EMBEDDING_MODEL
+from src.rag.embedding import DEFAULT_EMBEDDING_MODEL, Embedder
 from src.rag.retriever import load_default_config
+from src.rag.vector_store import QdrantVectorStore
 
 
 def build_chunking_settings(config: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -77,4 +78,43 @@ def save_chunks_for_conversation(
     db.commit()
     for chunk in chunks:
         db.refresh(chunk)
+    sync_chunks_to_vector_store(chunks, config_data)
     return chunks
+
+
+def sync_chunks_to_vector_store(
+    chunks: list[Chunk],
+    config: dict[str, Any],
+) -> None:
+    if not chunks:
+        return
+    if str(config.get("vector_backend", "memory")).lower() != "qdrant":
+        return
+
+    model_name = str(config.get("model_name", DEFAULT_EMBEDDING_MODEL))
+    texts = [chunk.chunk_text for chunk in chunks]
+    embedder = Embedder(model_name=model_name)
+    vectors = embedder.embed_texts(texts)
+
+    rows = []
+    for chunk in chunks:
+        rows.append(
+            {
+                "chunk_id": str(chunk.id),
+                "conversation_id": str(chunk.conversation_id),
+                "chunk_text": chunk.chunk_text,
+                "person_name_prefix": chunk.person_name_prefix,
+                "chunk_index": chunk.chunk_index,
+                "embedding_model": chunk.embedding_model,
+            }
+        )
+
+    vector_config = dict(config.get("vector_store", {}))
+    store = QdrantVectorStore(
+        collection_name=str(vector_config.get("collection_name", "conversation_chunks")),
+        url=vector_config.get("url"),
+        api_key=vector_config.get("api_key"),
+        vector_size=len(vectors[0]),
+    )
+    store.ensure_collection()
+    store.upsert_chunks(rows, vectors)

@@ -27,6 +27,14 @@ class QdrantVectorStore:
             api_key=api_key or os.getenv("QDRANT_API_KEY"),
         )
 
+    def ensure_collection(self) -> None:
+        if self.client.collection_exists(collection_name=self.collection_name):
+            return
+        self.client.create_collection(
+            collection_name=self.collection_name,
+            vectors_config=VectorParams(size=self.vector_size, distance=Distance.COSINE),
+        )
+
     def recreate_collection(self) -> None:
         self.client.recreate_collection(
             collection_name=self.collection_name,
