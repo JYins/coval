@@ -25,6 +25,7 @@ The name comes from `covalent bond`. In chemistry, a covalent bond is about shar
 - runs dense retrieval over conversation chunks
 - assembles prompts for Q&A and briefing generation
 - stores lightweight personality profiles and communication-style summaries
+- logs Q&A and briefing history per person
 - runs a small retrieval eval set with `Recall@K` and `MRR`
 
 ## Architecture Overview
@@ -118,6 +119,7 @@ Notes:
 | `GET` | `/api/persons` | list persons for current user |
 | `GET` | `/api/persons/{person_id}` | get person detail |
 | `GET` | `/api/persons/{person_id}/briefing` | generate pre-meeting briefing |
+| `GET` | `/api/persons/{person_id}/interactions` | inspect recent Q&A and briefing history |
 | `POST` | `/api/conversations` | upload manual or file-based conversation |
 | `POST` | `/api/ask` | ask a question about a person with RAG |
 

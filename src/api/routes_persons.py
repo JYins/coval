@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from src.analysis.briefing import generate_person_briefing
 from src.api.deps import get_current_user
 from src.models.database import get_db
+from src.models.interaction import Interaction
 from src.models.person import Person
 from src.models.user import User
 
@@ -48,6 +49,15 @@ class BriefingResponse(BaseModel):
     person_id: UUID
     briefing: str
     retrieved_chunks: list[BriefingChunkResponse]
+
+
+class InteractionResponse(BaseModel):
+    id: UUID
+    person_id: UUID
+    interaction_type: str
+    ai_advice_given: str
+    user_rating: int | None = None
+    created_at: datetime
 
 
 def normalize_person_name(name: str) -> str:
@@ -100,6 +110,33 @@ def get_user_person(db: Session, user_id: UUID, person_id: UUID) -> Person | Non
         db.query(Person)
         .filter(Person.id == person_id, Person.user_id == user_id)
         .first()
+    )
+
+
+def list_person_interactions(
+    db: Session,
+    person_id: UUID,
+    limit: int = 20,
+) -> list[Interaction]:
+    if limit <= 0:
+        raise ValueError("limit should be > 0")
+    return (
+        db.query(Interaction)
+        .filter(Interaction.person_id == person_id)
+        .order_by(Interaction.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+def build_interaction_response(row: Interaction) -> InteractionResponse:
+    return InteractionResponse(
+        id=row.id,
+        person_id=row.person_id,
+        interaction_type=row.interaction_type,
+        ai_advice_given=row.ai_advice_given,
+        user_rating=row.user_rating,
+        created_at=row.created_at,
     )
 
 
@@ -163,4 +200,23 @@ def get_person_briefing(
             for row in list(result["retrieved_chunks"])
         ],
     )
+
+
+@router.get("/{person_id}/interactions", response_model=list[InteractionResponse])
+def get_person_interactions(
+    person_id: UUID,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[InteractionResponse]:
+    person = get_user_person(db, current_user.id, person_id)
+    if person is None:
+        raise HTTPException(status_code=404, detail="person not found")
+
+    try:
+        rows = list_person_interactions(db, person.id, limit=limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return [build_interaction_response(row) for row in rows]
 

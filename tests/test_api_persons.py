@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
@@ -152,4 +153,76 @@ def test_get_person_briefing(monkeypatch):
     assert body["person_id"] == str(person.id)
     assert "music" in body["briefing"]
     assert body["retrieved_chunks"][0]["chunk_id"] == "chunk-1"
+
+
+def test_get_person_interactions(monkeypatch):
+    user = override_user()
+    person = SimpleNamespace(
+        id=uuid4(),
+        user_id=user.id,
+        name="Alice",
+        relationship_type="friend",
+        notes="met at school",
+        first_met=None,
+        last_contact=None,
+    )
+
+    monkeypatch.setattr(routes_persons, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(
+        routes_persons,
+        "list_person_interactions",
+        lambda db, person_id, limit=20: [
+            SimpleNamespace(
+                id=uuid4(),
+                person_id=person_id,
+                interaction_type="question",
+                ai_advice_given="Ask about music first.",
+                user_rating=4,
+                created_at=datetime.now(timezone.utc),
+            ),
+            SimpleNamespace(
+                id=uuid4(),
+                person_id=person_id,
+                interaction_type="briefing",
+                ai_advice_given="Keep the tone relaxed.",
+                user_rating=None,
+                created_at=datetime.now(timezone.utc),
+            ),
+        ],
+    )
+    app.dependency_overrides[get_current_user] = lambda: user
+
+    response = client.get(f"/api/persons/{person.id}/interactions?limit=2")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 2
+    assert body[0]["interaction_type"] == "question"
+    assert body[1]["interaction_type"] == "briefing"
+
+
+def test_get_person_interactions_bad_limit(monkeypatch):
+    user = override_user()
+    person = SimpleNamespace(
+        id=uuid4(),
+        user_id=user.id,
+        name="Bob",
+        relationship_type="client",
+        notes=None,
+        first_met=None,
+        last_contact=None,
+    )
+
+    monkeypatch.setattr(routes_persons, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(
+        routes_persons,
+        "list_person_interactions",
+        lambda db, person_id, limit=20: (_ for _ in ()).throw(ValueError("limit should be > 0")),
+    )
+    app.dependency_overrides[get_current_user] = lambda: user
+
+    response = client.get(f"/api/persons/{person.id}/interactions?limit=0")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "limit should be > 0"
 
