@@ -60,6 +60,10 @@ class InteractionResponse(BaseModel):
     created_at: datetime
 
 
+class InteractionRatingUpdate(BaseModel):
+    user_rating: int
+
+
 def normalize_person_name(name: str) -> str:
     value = name.strip()
     if not value:
@@ -138,6 +142,32 @@ def build_interaction_response(row: Interaction) -> InteractionResponse:
         user_rating=row.user_rating,
         created_at=row.created_at,
     )
+
+
+def get_person_interaction(
+    db: Session,
+    person_id: UUID,
+    interaction_id: UUID,
+) -> Interaction | None:
+    return (
+        db.query(Interaction)
+        .filter(Interaction.id == interaction_id, Interaction.person_id == person_id)
+        .first()
+    )
+
+
+def update_interaction_rating(
+    db: Session,
+    interaction: Interaction,
+    user_rating: int,
+) -> Interaction:
+    if user_rating < 1 or user_rating > 5:
+        raise ValueError("user_rating should be between 1 and 5")
+    interaction.user_rating = user_rating
+    db.add(interaction)
+    db.commit()
+    db.refresh(interaction)
+    return interaction
 
 
 @router.post("", response_model=PersonResponse, status_code=status.HTTP_201_CREATED)
@@ -219,4 +249,31 @@ def get_person_interactions(
         raise HTTPException(status_code=400, detail=str(exc))
 
     return [build_interaction_response(row) for row in rows]
+
+
+@router.patch(
+    "/{person_id}/interactions/{interaction_id}/rating",
+    response_model=InteractionResponse,
+)
+def rate_person_interaction(
+    person_id: UUID,
+    interaction_id: UUID,
+    payload: InteractionRatingUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> InteractionResponse:
+    person = get_user_person(db, current_user.id, person_id)
+    if person is None:
+        raise HTTPException(status_code=404, detail="person not found")
+
+    interaction = get_person_interaction(db, person.id, interaction_id)
+    if interaction is None:
+        raise HTTPException(status_code=404, detail="interaction not found")
+
+    try:
+        row = update_interaction_rating(db, interaction, payload.user_rating)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return build_interaction_response(row)
 

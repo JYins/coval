@@ -226,3 +226,90 @@ def test_get_person_interactions_bad_limit(monkeypatch):
     assert response.status_code == 400
     assert response.json()["detail"] == "limit should be > 0"
 
+
+def test_rate_person_interaction(monkeypatch):
+    user = override_user()
+    person = SimpleNamespace(
+        id=uuid4(),
+        user_id=user.id,
+        name="Alice",
+        relationship_type="friend",
+        notes=None,
+        first_met=None,
+        last_contact=None,
+    )
+    interaction = SimpleNamespace(
+        id=uuid4(),
+        person_id=person.id,
+        interaction_type="question",
+        ai_advice_given="Ask about music first.",
+        user_rating=None,
+        created_at=datetime.now(timezone.utc),
+    )
+
+    monkeypatch.setattr(routes_persons, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(routes_persons, "get_person_interaction", lambda db, person_id, interaction_id: interaction)
+    monkeypatch.setattr(
+        routes_persons,
+        "update_interaction_rating",
+        lambda db, interaction_row, user_rating: SimpleNamespace(
+            id=interaction_row.id,
+            person_id=interaction_row.person_id,
+            interaction_type=interaction_row.interaction_type,
+            ai_advice_given=interaction_row.ai_advice_given,
+            user_rating=user_rating,
+            created_at=interaction_row.created_at,
+        ),
+    )
+    app.dependency_overrides[get_current_user] = lambda: user
+
+    response = client.patch(
+        f"/api/persons/{person.id}/interactions/{interaction.id}/rating",
+        json={"user_rating": 5},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == str(interaction.id)
+    assert body["user_rating"] == 5
+
+
+def test_rate_person_interaction_bad_rating(monkeypatch):
+    user = override_user()
+    person = SimpleNamespace(
+        id=uuid4(),
+        user_id=user.id,
+        name="Bob",
+        relationship_type="client",
+        notes=None,
+        first_met=None,
+        last_contact=None,
+    )
+    interaction = SimpleNamespace(
+        id=uuid4(),
+        person_id=person.id,
+        interaction_type="briefing",
+        ai_advice_given="Keep it short and clear.",
+        user_rating=None,
+        created_at=datetime.now(timezone.utc),
+    )
+
+    monkeypatch.setattr(routes_persons, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(routes_persons, "get_person_interaction", lambda db, person_id, interaction_id: interaction)
+    monkeypatch.setattr(
+        routes_persons,
+        "update_interaction_rating",
+        lambda db, interaction_row, user_rating: (_ for _ in ()).throw(
+            ValueError("user_rating should be between 1 and 5")
+        ),
+    )
+    app.dependency_overrides[get_current_user] = lambda: user
+
+    response = client.patch(
+        f"/api/persons/{person.id}/interactions/{interaction.id}/rating",
+        json={"user_rating": 9},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "user_rating should be between 1 and 5"
+
