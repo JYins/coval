@@ -165,3 +165,31 @@ def test_sync_chunks_to_vector_store_pushes_qdrant_rows(monkeypatch):
     assert len(seen["chunks"]) == 2
     assert len(seen["vectors"]) == 2
 
+
+def test_rebuild_chunks_for_person_collects_counts(monkeypatch):
+    person = SimpleNamespace(id=uuid4(), name="Alice")
+    conversations = [
+        SimpleNamespace(id=uuid4(), raw_content="one"),
+        SimpleNamespace(id=uuid4(), raw_content="two"),
+    ]
+    seen = {"calls": []}
+
+    monkeypatch.setattr(rag_indexing, "list_person_conversations", lambda db, person_id: conversations)
+
+    def fake_save_chunks_for_conversation(db, conversation, person_name, config=None):
+        seen["calls"].append((conversation.id, person_name))
+        return [SimpleNamespace(id=uuid4()), SimpleNamespace(id=uuid4())]
+
+    monkeypatch.setattr(rag_indexing, "save_chunks_for_conversation", fake_save_chunks_for_conversation)
+
+    summary = rag_indexing.rebuild_chunks_for_person(
+        db=object(),
+        person=person,
+        config={"vector_backend": "memory"},
+    )
+
+    assert summary["person_name"] == "Alice"
+    assert summary["conversation_count"] == 2
+    assert summary["chunk_count"] == 4
+    assert len(seen["calls"]) == 2
+

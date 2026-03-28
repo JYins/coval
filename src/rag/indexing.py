@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from src.models.chunk import Chunk
 from src.models.conversation import Conversation
+from src.models.person import Person
 from src.rag.chunking import chunk_conversation
 from src.rag.embedding import DEFAULT_EMBEDDING_MODEL, Embedder
 from src.rag.retriever import load_default_config
@@ -118,3 +119,41 @@ def sync_chunks_to_vector_store(
     )
     store.ensure_collection()
     store.upsert_chunks(rows, vectors)
+
+
+def list_person_conversations(
+    db: Session,
+    person_id,
+) -> list[Conversation]:
+    return (
+        db.query(Conversation)
+        .filter(Conversation.person_id == person_id)
+        .order_by(Conversation.conversation_date.asc(), Conversation.id.asc())
+        .all()
+    )
+
+
+def rebuild_chunks_for_person(
+    db: Session,
+    person: Person,
+    config: dict[str, Any] | None = None,
+) -> dict[str, object]:
+    config_data = dict(config or load_default_config())
+    conversations = list_person_conversations(db, person.id)
+
+    chunk_count = 0
+    for conversation in conversations:
+        chunks = save_chunks_for_conversation(
+            db=db,
+            conversation=conversation,
+            person_name=person.name,
+            config=config_data,
+        )
+        chunk_count += len(chunks)
+
+    return {
+        "person_id": str(person.id),
+        "person_name": person.name,
+        "conversation_count": len(conversations),
+        "chunk_count": chunk_count,
+    }
