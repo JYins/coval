@@ -13,6 +13,22 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 
 ![Coval live demo screenshot](docs/images/coval-vercel-home.png)
 
+## What Is Live Today
+
+- register and login flow works on the hosted demo
+- dashboard and person creation flow work
+- the product shape, visual direction, and API surface are all visible online
+- retrieval / ask / storage are still running in a Vercel-friendly demo profile, not the final Postgres + Qdrant deployment shape
+
+## Why This Repo Matters
+
+This is the application layer of my earlier `rag-eval-pipeline` work.
+
+- `rag-eval-pipeline`: figure out what actually improves retrieval
+- `coval`: apply those findings to a product with real user flows
+
+That is the portfolio narrative I wanted to make visible. First I benchmarked retrieval ideas, then I turned the good ones into a usable product backend.
+
 ## Why I Built This
 
 I built this after spending time on `rag-eval-pipeline`, where I benchmarked chunking strategies, embedding models, and retrieval setups to understand what actually improves retrieval quality. That project taught me a very practical lesson: if retrieval is weak, the LLM cannot really save the answer.
@@ -54,8 +70,6 @@ Storage split:
 - current local default config uses in-memory dense search for easier development, but the Qdrant wrapper is already in the repo
 
 ## Connection to RAG Eval Pipeline
-
-This repo is not meant to stand alone from my retrieval work. It is the application layer of that project.
 
 | RAG Eval module | Coval module | Transfer |
 |---|---|---|
@@ -196,6 +210,7 @@ More detail lives in `docs/design_decisions.md`.
 - personality analysis is intentionally lightweight and still early
 - the eval set is small and hand-labeled
 - frontend and backend are both live in demo form, but the hosted backend still uses a temporary Vercel-friendly deploy profile instead of the final Postgres + Qdrant production shape
+- the live demo is mainly for product presentation and basic flow checking, not long-term hosted data
 - OCR and voice ingestion are not implemented beyond clear stubs
 
 ## Future Work
