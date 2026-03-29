@@ -2,7 +2,13 @@
 
 [![CI](https://github.com/JYins/coval/actions/workflows/ci.yml/badge.svg)](https://github.com/JYins/coval/actions/workflows/ci.yml)
 
-Coval is an AI-powered relationship memory backend I am building step by step. The idea is a bit unusual, I know, but I think there is a real use case here for dating, sales, and active networking: if we can retrieve the right personal context at the right time, maybe we can show up a little better in real conversations. This repo is backend-first on purpose. I want the ingestion + retrieval + prompt assembly loop to be real before pretending the whole product is done.
+Coval is an AI-powered relationship memory backend I am building step by step. The idea is a bit unusual, I know, but I think there is a real use case here for dating, sales, and active networking: if we can retrieve the right personal context at the right time, maybe we can show up a little better in real conversations. This repo is still backend-first at the core, but it now also includes a premium frontend demo so the product shape is easier to see.
+
+## Frontend Demo
+
+- Live UI demo: [https://web-tau-lake-89.vercel.app](https://web-tau-lake-89.vercel.app)
+- Current status: frontend / interface demo only
+- Important note: the live Vercel site does **not** have the FastAPI backend deployed yet, so interactive flows like login, person creation, conversation upload, and ask still need a backend service later
 
 ## Why I Built This
 
@@ -111,6 +117,14 @@ Notes:
 - the current default retrieval backend in `configs/default.yaml` is `memory`
 - switch to Qdrant by changing config and running a local Qdrant instance
 
+Frontend local run:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
 ## API Endpoints
 
 | Method | Path | Purpose |
@@ -178,7 +192,7 @@ More detail lives in `docs/design_decisions.md`.
 - Qdrant support exists, but the default local path still uses in-memory dense retrieval
 - personality analysis is intentionally lightweight and still early
 - the eval set is small and hand-labeled
-- no frontend yet
+- frontend demo exists, but the hosted Vercel version is still UI-only because the backend API is not deployed yet
 - OCR and voice ingestion are not implemented beyond clear stubs
 
 ## Future Work
