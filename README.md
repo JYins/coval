@@ -27,6 +27,7 @@ The name comes from `covalent bond`. In chemistry, a covalent bond is about shar
 - stores lightweight personality profiles and communication-style summaries
 - logs Q&A and briefing history per person
 - supports simple 1-5 feedback on generated interactions
+- exposes a small feedback summary per person
 - runs a small retrieval eval set with `Recall@K` and `MRR`
 
 ## Architecture Overview
@@ -121,6 +122,7 @@ Notes:
 | `GET` | `/api/persons/{person_id}` | get person detail |
 | `GET` | `/api/persons/{person_id}/briefing` | generate pre-meeting briefing |
 | `GET` | `/api/persons/{person_id}/interactions` | inspect recent Q&A and briefing history |
+| `GET` | `/api/persons/{person_id}/interactions/summary` | inspect rating summary for recent interactions |
 | `PATCH` | `/api/persons/{person_id}/interactions/{interaction_id}/rating` | rate one generated interaction |
 | `POST` | `/api/conversations` | upload manual or file-based conversation |
 | `POST` | `/api/ask` | ask a question about a person with RAG |

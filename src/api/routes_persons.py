@@ -64,6 +64,15 @@ class InteractionRatingUpdate(BaseModel):
     user_rating: int
 
 
+class InteractionSummaryResponse(BaseModel):
+    person_id: UUID
+    total_interactions: int
+    rated_interactions: int
+    average_rating: float | None = None
+    rating_counts: dict[str, int]
+    interaction_type_counts: dict[str, int]
+
+
 def normalize_person_name(name: str) -> str:
     value = name.strip()
     if not value:
@@ -170,6 +179,36 @@ def update_interaction_rating(
     return interaction
 
 
+def summarize_interactions(
+    person_id: UUID,
+    rows: list[Interaction],
+) -> InteractionSummaryResponse:
+    rating_counts = {str(number): 0 for number in range(1, 6)}
+    interaction_type_counts: dict[str, int] = {}
+    ratings = []
+
+    for row in rows:
+        interaction_type_counts[row.interaction_type] = (
+            interaction_type_counts.get(row.interaction_type, 0) + 1
+        )
+        if row.user_rating is not None:
+            rating_counts[str(row.user_rating)] += 1
+            ratings.append(row.user_rating)
+
+    average_rating = None
+    if ratings:
+        average_rating = round(sum(ratings) / len(ratings), 2)
+
+    return InteractionSummaryResponse(
+        person_id=person_id,
+        total_interactions=len(rows),
+        rated_interactions=len(ratings),
+        average_rating=average_rating,
+        rating_counts=rating_counts,
+        interaction_type_counts=interaction_type_counts,
+    )
+
+
 @router.post("", response_model=PersonResponse, status_code=status.HTTP_201_CREATED)
 def create_person(
     data: PersonCreate,
@@ -249,6 +288,28 @@ def get_person_interactions(
         raise HTTPException(status_code=400, detail=str(exc))
 
     return [build_interaction_response(row) for row in rows]
+
+
+@router.get(
+    "/{person_id}/interactions/summary",
+    response_model=InteractionSummaryResponse,
+)
+def get_person_interaction_summary(
+    person_id: UUID,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> InteractionSummaryResponse:
+    person = get_user_person(db, current_user.id, person_id)
+    if person is None:
+        raise HTTPException(status_code=404, detail="person not found")
+
+    try:
+        rows = list_person_interactions(db, person.id, limit=limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return summarize_interactions(person.id, rows)
 
 
 @router.patch(

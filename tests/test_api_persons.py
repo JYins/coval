@@ -313,3 +313,60 @@ def test_rate_person_interaction_bad_rating(monkeypatch):
     assert response.status_code == 400
     assert response.json()["detail"] == "user_rating should be between 1 and 5"
 
+
+def test_get_person_interaction_summary(monkeypatch):
+    user = override_user()
+    person = SimpleNamespace(
+        id=uuid4(),
+        user_id=user.id,
+        name="Alice",
+        relationship_type="friend",
+        notes=None,
+        first_met=None,
+        last_contact=None,
+    )
+
+    monkeypatch.setattr(routes_persons, "get_user_person", lambda db, user_id, person_id: person)
+    monkeypatch.setattr(
+        routes_persons,
+        "list_person_interactions",
+        lambda db, person_id, limit=50: [
+            SimpleNamespace(
+                id=uuid4(),
+                person_id=person_id,
+                interaction_type="question",
+                ai_advice_given="Ask about music first.",
+                user_rating=5,
+                created_at=datetime.now(timezone.utc),
+            ),
+            SimpleNamespace(
+                id=uuid4(),
+                person_id=person_id,
+                interaction_type="briefing",
+                ai_advice_given="Keep the tone relaxed.",
+                user_rating=3,
+                created_at=datetime.now(timezone.utc),
+            ),
+            SimpleNamespace(
+                id=uuid4(),
+                person_id=person_id,
+                interaction_type="question",
+                ai_advice_given="Mention quiet coffee places.",
+                user_rating=None,
+                created_at=datetime.now(timezone.utc),
+            ),
+        ],
+    )
+    app.dependency_overrides[get_current_user] = lambda: user
+
+    response = client.get(f"/api/persons/{person.id}/interactions/summary?limit=50")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["person_id"] == str(person.id)
+    assert body["total_interactions"] == 3
+    assert body["rated_interactions"] == 2
+    assert body["average_rating"] == 4.0
+    assert body["rating_counts"]["5"] == 1
+    assert body["interaction_type_counts"]["question"] == 2
+
