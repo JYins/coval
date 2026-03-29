@@ -5,18 +5,18 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import Column, DateTime, ForeignKey, JSON, func
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from src.models.database import Base
+from src.models.types import GUID
 
 
 class PersonalityProfile(Base):
     __tablename__ = "personality_profiles"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
     person_id = Column(
-        UUID(as_uuid=True),
+        GUID(),
         ForeignKey("persons.id"),
         nullable=False,
         unique=True,

@@ -12,7 +12,11 @@ from src.models.person import Person
 from src.rag.chunking import chunk_conversation
 from src.rag.embedding import DEFAULT_EMBEDDING_MODEL, Embedder
 from src.rag.retriever import load_default_config
-from src.rag.vector_store import QdrantVectorStore
+
+try:
+    from src.rag.vector_store import QdrantVectorStore
+except ModuleNotFoundError:
+    QdrantVectorStore = None
 
 
 def build_chunking_settings(config: dict[str, Any]) -> tuple[str, dict[str, Any]]:
@@ -92,6 +96,10 @@ def sync_chunks_to_vector_store(
     if str(config.get("vector_backend", "memory")).lower() != "qdrant":
         return
 
+    store_class = QdrantVectorStore
+    if store_class is None:
+        from src.rag.vector_store import QdrantVectorStore as store_class
+
     model_name = str(config.get("model_name", DEFAULT_EMBEDDING_MODEL))
     texts = [chunk.chunk_text for chunk in chunks]
     embedder = Embedder(model_name=model_name)
@@ -111,7 +119,7 @@ def sync_chunks_to_vector_store(
         )
 
     vector_config = dict(config.get("vector_store", {}))
-    store = QdrantVectorStore(
+    store = store_class(
         collection_name=str(vector_config.get("collection_name", "conversation_chunks")),
         url=vector_config.get("url"),
         api_key=vector_config.get("api_key"),

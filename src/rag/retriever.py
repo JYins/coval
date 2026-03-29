@@ -15,7 +15,11 @@ from src.models.conversation import Conversation
 from src.models.person import Person
 from src.rag.chunking import chunk_conversation
 from src.rag.embedding import DEFAULT_EMBEDDING_MODEL, Embedder
-from src.rag.vector_store import QdrantVectorStore
+
+try:
+    from src.rag.vector_store import QdrantVectorStore
+except ModuleNotFoundError:
+    QdrantVectorStore = None
 
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -158,6 +162,10 @@ def search_qdrant(
     top_k: int,
     config: dict[str, Any],
 ) -> list[dict[str, Any]]:
+    store_class = QdrantVectorStore
+    if store_class is None:
+        from src.rag.vector_store import QdrantVectorStore as store_class
+
     if not chunks:
         return []
 
@@ -166,7 +174,7 @@ def search_qdrant(
     query_vector = embedder.embed_query(query)
 
     vector_config = dict(config.get("vector_store", {}))
-    store = QdrantVectorStore(
+    store = store_class(
         collection_name=str(
             vector_config.get("collection_name", "conversation_chunks")
         ),

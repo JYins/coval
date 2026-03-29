@@ -7,8 +7,9 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 ## Frontend Demo
 
 - Live UI demo: [https://web-tau-lake-89.vercel.app](https://web-tau-lake-89.vercel.app)
-- Current status: frontend / interface demo only
-- Important note: the live Vercel site does **not** have the FastAPI backend deployed yet, so interactive flows like login, person creation, conversation upload, and ask still need a backend service later
+- Live backend demo API: [https://coval.vercel.app](https://coval.vercel.app)
+- Current status: live demo stack, not final production deployment
+- Important note: the hosted backend currently runs in a slim demo mode on Vercel with mock embedding / mock LLM behavior and temporary demo-grade storage, so it is good for showing product shape but not a durable production backend yet
 
 ## Why I Built This
 
@@ -192,7 +193,7 @@ More detail lives in `docs/design_decisions.md`.
 - Qdrant support exists, but the default local path still uses in-memory dense retrieval
 - personality analysis is intentionally lightweight and still early
 - the eval set is small and hand-labeled
-- frontend demo exists, but the hosted Vercel version is still UI-only because the backend API is not deployed yet
+- frontend and backend are both live in demo form, but the hosted backend still uses a temporary Vercel-friendly deploy profile instead of the final Postgres + Qdrant production shape
 - OCR and voice ingestion are not implemented beyond clear stubs
 
 ## Future Work

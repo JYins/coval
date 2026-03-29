@@ -1,0 +1,14 @@
+[project]
+name = "coval-api"
+version = "0.1.0"
+description = "Deployment profile for the Coval FastAPI backend"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi",
+  "sqlalchemy",
+  "pydantic",
+  "python-jose[cryptography]",
+  "passlib[bcrypt]",
+  "python-multipart",
+  "pyyaml",
+]

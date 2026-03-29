@@ -9,6 +9,8 @@ __pycache__/
 htmlcov/
 .env
 .env.*
+.vercel/
 .DS_Store
 Thumbs.db
 
+.vercel
