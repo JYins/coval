@@ -11,6 +11,8 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 - Current status: live demo stack, not final production deployment
 - Important note: the hosted backend currently runs in a slim demo mode on Vercel with mock embedding / mock LLM behavior and temporary demo-grade storage, so it is good for showing product shape but not a durable production backend yet
 
+![Coval live demo screenshot](docs/images/coval-vercel-home.png)
+
 ## Why I Built This
 
 I built this after spending time on `rag-eval-pipeline`, where I benchmarked chunking strategies, embedding models, and retrieval setups to understand what actually improves retrieval quality. That project taught me a very practical lesson: if retrieval is weak, the LLM cannot really save the answer.
