@@ -9,6 +9,7 @@ __pycache__/
 htmlcov/
 .env
 .env.*
+!.env.hosted.example
 .vercel/
 .DS_Store
 Thumbs.db

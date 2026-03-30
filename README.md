@@ -10,6 +10,7 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 - Live backend demo API: [https://coval.vercel.app](https://coval.vercel.app)
 - Current status: live demo stack, not final production deployment
 - Important note: the hosted backend currently runs in a slim demo mode on Vercel with mock embedding / mock LLM behavior and temporary demo-grade storage, so it is good for showing product shape but not a durable production backend yet
+- Formal hosted target: `Render + Neon + Qdrant Cloud` with the repo now prepared for that cutover
 
 ![Coval live demo screenshot](docs/images/coval-vercel-home.png)
 
@@ -19,6 +20,7 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 - dashboard and person creation flow work
 - the product shape, visual direction, and API surface are all visible online
 - retrieval / ask / storage are still running in a Vercel-friendly demo profile, not the final Postgres + Qdrant deployment shape
+- the repo now includes `render.yaml`, hosted env templates, and deployment notes for the formal backend migration
 
 ## Why This Repo Matters
 
@@ -68,6 +70,13 @@ Storage split:
 - PostgreSQL stores users, persons, conversations, chunks, personality profiles, and interaction logs
 - Qdrant is the vector-store target for chunk embeddings
 - current local default config uses in-memory dense search for easier development, but the Qdrant wrapper is already in the repo
+
+Hosted deployment target:
+
+- `Vercel` keeps the frontend
+- `Render` runs the FastAPI backend
+- `Neon` holds the hosted PostgreSQL database
+- `Qdrant Cloud` stores vectors when hosted semantic search is enabled
 
 ## Connection to RAG Eval Pipeline
 
@@ -133,6 +142,7 @@ Notes:
 - `scripts/init_db.py` expects PostgreSQL from `DATABASE_URL`
 - the current default retrieval backend in `configs/default.yaml` is `memory`
 - switch to Qdrant by changing config and running a local Qdrant instance
+- for hosted backend deployment, use `requirements-hosted.txt`, `.env.hosted.example`, and `render.yaml`
 
 Frontend local run:
 
@@ -166,6 +176,12 @@ Two YAML files matter right now:
 - `configs/eval.yaml`: eval dataset path, metric outputs, chunking config, and top-k settings
 
 The backend is intentionally config-light for now. I wanted the pipeline logic to stay easy to explain in an interview before adding too many toggles.
+
+Hosted env notes:
+
+- `APP_ENV=hosted` marks the Render/Neon path
+- `EMBEDDING_PROVIDER=mock` and `LLM_PROVIDER=mock` are the safest free-first defaults for the first hosted cutover
+- `CORS_ORIGINS` should be set to the live Vercel frontend plus localhost
 
 ## Database Schema
 
@@ -203,6 +219,7 @@ Artifacts:
 - honest scope: OCR and voice are still stubs because the core retrieval loop matters more first
 
 More detail lives in `docs/design_decisions.md`.
+Hosted setup notes live in `docs/hosting_setup.md`.
 
 ## Limitations
 
@@ -210,6 +227,7 @@ More detail lives in `docs/design_decisions.md`.
 - personality analysis is intentionally lightweight and still early
 - the eval set is small and hand-labeled
 - frontend and backend are both live in demo form, but the hosted backend still uses a temporary Vercel-friendly deploy profile instead of the final Postgres + Qdrant production shape
+- the formal hosted backend files are in the repo now, but the actual provider-side cutover still depends on creating the Render, Neon, and Qdrant services
 - the live demo is mainly for product presentation and basic flow checking, not long-term hosted data
 - OCR and voice ingestion are not implemented beyond clear stubs
 

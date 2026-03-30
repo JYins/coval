@@ -8,13 +8,24 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg2://postgres:postgres@localhost:5432/coval",
-).strip()
+def normalize_database_url(url: str) -> str:
+    value = url.strip()
+    if value.startswith("postgres://"):
+        return value.replace("postgres://", "postgresql+psycopg2://", 1)
+    if value.startswith("postgresql://"):
+        return value.replace("postgresql://", "postgresql+psycopg2://", 1)
+    return value
 
 
-engine_kwargs = {}
+DATABASE_URL = normalize_database_url(
+    os.getenv(
+        "DATABASE_URL",
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/coval",
+    )
+)
+
+
+engine_kwargs = {"pool_pre_ping": True}
 if DATABASE_URL.startswith("sqlite"):
     engine_kwargs["connect_args"] = {"check_same_thread": False}
 

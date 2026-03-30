@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +24,30 @@ def load_cors_origins() -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def allow_credentials(cors_origins: list[str]) -> bool:
+    return cors_origins != ["*"]
+
+
+def detect_database_driver() -> str:
+    database_url = os.getenv("DATABASE_URL", "").strip().lower()
+    if database_url.startswith("sqlite"):
+        return "sqlite"
+    if database_url.startswith("postgres"):
+        return "postgres"
+    return "unknown"
+
+
+def load_runtime_mode() -> str:
+    return os.getenv("APP_ENV", "local").strip() or "local"
+
+
+def load_host_name() -> str | None:
+    value = os.getenv("QDRANT_URL", "").strip()
+    if not value:
+        return None
+    return urlparse(value).hostname
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # import models here so metadata sees every table
@@ -38,11 +63,12 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Coval API", lifespan=lifespan)
+cors_origins = load_cors_origins()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=load_cors_origins(),
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials(cors_origins),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -55,5 +81,17 @@ app.include_router(ask_router)
 
 @app.get("/")
 def read_root() -> dict[str, str]:
-    return {"message": "coval backend is starting up"}
+    return {"message": "coval backend is up"}
+
+
+@app.get("/health")
+def read_health() -> dict[str, object]:
+    return {
+        "status": "ok",
+        "app_env": load_runtime_mode(),
+        "database": detect_database_driver(),
+        "embedding_provider": os.getenv("EMBEDDING_PROVIDER", "sentence-transformers").strip(),
+        "llm_provider": os.getenv("LLM_PROVIDER", "mock").strip(),
+        "qdrant_host": load_host_name(),
+    }
 
