@@ -15,6 +15,7 @@ from src.api.routes_persons import router as persons_router
 from src.api.routes_users import router as users_router
 from src.models import Base
 from src.models.database import engine
+from src.rag.retriever import load_default_config
 
 
 def load_cors_origins() -> list[str]:
@@ -46,6 +47,12 @@ def load_host_name() -> str | None:
     if not value:
         return None
     return urlparse(value).hostname
+
+
+def load_effective_llm_provider() -> str:
+    config = load_default_config()
+    llm_config = dict(config.get("llm", {}))
+    return str(llm_config.get("provider", "mock"))
 
 
 @asynccontextmanager
@@ -91,7 +98,7 @@ def read_health() -> dict[str, object]:
         "app_env": load_runtime_mode(),
         "database": detect_database_driver(),
         "embedding_provider": os.getenv("EMBEDDING_PROVIDER", "sentence-transformers").strip(),
-        "llm_provider": os.getenv("LLM_PROVIDER", "mock").strip(),
+        "llm_provider": load_effective_llm_provider(),
         "qdrant_host": load_host_name(),
     }
 

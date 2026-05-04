@@ -66,9 +66,11 @@ def test_apply_env_overrides_defaults_kimi_model(monkeypatch):
 
 
 def test_apply_env_overrides_reads_kimi_key_without_provider_change(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "hosted")
     monkeypatch.setenv("KIMI_API_KEY", "kimi-secret")
 
-    config = apply_env_overrides({"llm": {"provider": "kimi", "model": "kimi-k2.6"}})
+    config = apply_env_overrides({"llm": {"provider": "mock"}})
 
     assert config["llm"]["provider"] == "kimi"
+    assert config["llm"]["model"] == "kimi-k2.6"
     assert config["llm"]["api_key"] == "kimi-secret"

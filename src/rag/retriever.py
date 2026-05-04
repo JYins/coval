@@ -57,6 +57,9 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         llm = dict(config.get("llm", {}))
         if llm_provider:
             llm["provider"] = llm_provider.strip()
+        if kimi_api_key and os.getenv("APP_ENV", "").strip() == "hosted":
+            # hosted demo should use the real provider once the key exists
+            llm["provider"] = "kimi"
         if llm_model:
             llm["model"] = llm_model.strip()
         elif llm.get("provider") == "kimi":
