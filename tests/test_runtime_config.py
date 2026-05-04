@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from src.api.app import allow_credentials, app, load_cors_origins
 from src.models.database import normalize_database_url
+from src.rag.retriever import apply_env_overrides
 
 
 def test_load_cors_origins_reads_list(monkeypatch):
@@ -35,3 +36,17 @@ def test_health_endpoint_returns_runtime_shape():
     body = response.json()
     assert body["status"] == "ok"
     assert "database" in body
+
+
+def test_apply_env_overrides_for_hosted_runtime(monkeypatch):
+    monkeypatch.setenv("VECTOR_BACKEND", "qdrant")
+    monkeypatch.setenv("QDRANT_URL", "https://qdrant.example.com")
+    monkeypatch.setenv("QDRANT_API_KEY", "secret-key")
+    monkeypatch.setenv("LLM_PROVIDER", "mock")
+
+    config = apply_env_overrides({"vector_store": {}, "llm": {}})
+
+    assert config["vector_backend"] == "qdrant"
+    assert config["vector_store"]["url"] == "https://qdrant.example.com"
+    assert config["vector_store"]["api_key"] == "secret-key"
+    assert config["llm"]["provider"] == "mock"

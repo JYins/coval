@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import os
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -30,7 +31,35 @@ def load_default_config(path: Path | None = None) -> dict[str, Any]:
     config_path = path or DEFAULT_CONFIG_PATH
     with config_path.open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle) or {}
-    return dict(data)
+    return apply_env_overrides(dict(data))
+
+
+def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
+    vector_backend = os.getenv("VECTOR_BACKEND")
+    if vector_backend:
+        config["vector_backend"] = vector_backend.strip()
+
+    qdrant_url = os.getenv("QDRANT_URL")
+    qdrant_api_key = os.getenv("QDRANT_API_KEY")
+    if qdrant_url or qdrant_api_key:
+        vector_store = dict(config.get("vector_store", {}))
+        if qdrant_url:
+            vector_store["url"] = qdrant_url.strip()
+        if qdrant_api_key:
+            vector_store["api_key"] = qdrant_api_key.strip()
+        config["vector_store"] = vector_store
+
+    llm_provider = os.getenv("LLM_PROVIDER")
+    llm_model = os.getenv("LLM_MODEL")
+    if llm_provider or llm_model:
+        llm = dict(config.get("llm", {}))
+        if llm_provider:
+            llm["provider"] = llm_provider.strip()
+        if llm_model:
+            llm["model"] = llm_model.strip()
+        config["llm"] = llm
+
+    return config
 
 
 def build_person_summary(person: Person) -> str:

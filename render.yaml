@@ -21,6 +21,8 @@ services:
         sync: false
       - key: QDRANT_API_KEY
         sync: false
+      - key: VECTOR_BACKEND
+        value: qdrant
       - key: EMBEDDING_PROVIDER
         value: mock
       - key: LLM_PROVIDER

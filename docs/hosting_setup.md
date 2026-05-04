@@ -31,15 +31,18 @@ Copy from `.env.hosted.example`.
 - `SECRET_KEY` should be changed from the example value
 - `CORS_ORIGINS` should include the live Vercel frontend plus localhost
 - `QDRANT_URL` and `QDRANT_API_KEY` should come from Qdrant Cloud
+- if Qdrant gives a Python snippet, use the full URL form with `:6333`
+- `VECTOR_BACKEND=qdrant` enables the hosted vector-store path
 
 ## Phase 1 hosted mode
 
 For the first hosted version, keep this simple:
 
+- `VECTOR_BACKEND=qdrant`
 - `EMBEDDING_PROVIDER=mock`
 - `LLM_PROVIDER=mock`
 
-That gives a more stable hosted backend first. Real model providers can come later after the storage and API path are stable.
+That gives a more stable hosted backend first while still exercising the Qdrant integration. Real model providers can come later after the storage and API path are stable.
 
 ## Cutover checklist
 
