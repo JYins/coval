@@ -7,10 +7,9 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 ## Frontend Demo
 
 - Live UI demo: [https://web-tau-lake-89.vercel.app](https://web-tau-lake-89.vercel.app)
-- Live backend demo API: [https://coval.vercel.app](https://coval.vercel.app)
-- Current status: live demo stack, not final production deployment
-- Important note: the hosted backend currently runs in a slim demo mode on Vercel with mock embedding / mock LLM behavior and temporary demo-grade storage, so it is good for showing product shape but not a durable production backend yet
-- Formal hosted target: `Render + Neon + Qdrant Cloud` with the repo now prepared for that cutover
+- Live hosted backend API: [https://coval-tb2s.onrender.com](https://coval-tb2s.onrender.com)
+- Current status: hosted demo stack with durable PostgreSQL storage
+- Important note: the hosted backend now runs on Render with Neon Postgres and Qdrant Cloud. It still uses mock embedding / mock LLM behavior for the free-first demo path, so the infrastructure is real while the AI provider layer is intentionally conservative for now.
 
 ![Coval live demo screenshot](docs/images/coval-vercel-home.png)
 
@@ -19,8 +18,10 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 - register and login flow works on the hosted demo
 - dashboard and person creation flow work
 - the product shape, visual direction, and API surface are all visible online
-- retrieval / ask / storage are still running in a Vercel-friendly demo profile, not the final Postgres + Qdrant deployment shape
-- the repo now includes `render.yaml`, hosted env templates, and deployment notes for the formal backend migration
+- the frontend is deployed on Vercel and points to the Render backend
+- PostgreSQL persistence is backed by Neon
+- Qdrant Cloud is wired into the hosted retrieval path with mock embeddings
+- hosted smoke test passes across register, login, person CRUD, upload, ask, briefing, rating, and summary
 
 ## Why This Repo Matters
 
@@ -232,9 +233,8 @@ Hosted setup notes live in `docs/hosting_setup.md`.
 - Qdrant support exists, but the default local path still uses in-memory dense retrieval
 - personality analysis is intentionally lightweight and still early
 - the eval set is small and hand-labeled
-- frontend and backend are both live in demo form, but the hosted backend still uses a temporary Vercel-friendly deploy profile instead of the final Postgres + Qdrant production shape
-- the formal hosted backend files are in the repo now, but the actual provider-side cutover still depends on creating the Render, Neon, and Qdrant services
-- the live demo is mainly for product presentation and basic flow checking, not long-term hosted data
+- the live hosted stack is demo-grade and free-first, so Render cold starts can happen
+- hosted AI output still uses mock LLM responses until real OpenAI or Anthropic credentials are added
 - OCR and voice ingestion are not implemented beyond clear stubs
 
 ## Future Work
