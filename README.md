@@ -10,7 +10,7 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 - Live hosted backend API: [https://coval-tb2s.onrender.com](https://coval-tb2s.onrender.com)
 - Hosted health check: [https://coval-tb2s.onrender.com/health](https://coval-tb2s.onrender.com/health)
 - Current status: hosted demo stack with durable PostgreSQL storage
-- Important note: the hosted backend now runs on Render with Neon Postgres and Qdrant Cloud. It still uses mock embedding / mock LLM behavior for the free-first demo path, so the infrastructure is real while the AI provider layer is intentionally conservative for now. Kimi K2.6 support is wired in and can be enabled with Render env vars after the API key is verified.
+- Important note: the hosted backend now runs on Render with Neon Postgres and Qdrant Cloud. Kimi K2.6 support is wired through the domestic Moonshot API endpoint, while embeddings stay in mock mode for the free-first demo path.
 
 ![Coval live demo screenshot](docs/images/coval-vercel-home.png)
 
@@ -191,8 +191,8 @@ The backend is intentionally config-light for now. I wanted the pipeline logic t
 Hosted env notes:
 
 - `APP_ENV=hosted` marks the Render/Neon path
-- `EMBEDDING_PROVIDER=mock` and `LLM_PROVIDER=mock` are the safest free-first defaults for the first hosted cutover
-- switch to Kimi later with `LLM_PROVIDER=kimi`, `LLM_MODEL=kimi-k2.6`, `KIMI_BASE_URL=https://api.moonshot.ai/v1`, and `KIMI_API_KEY`
+- `EMBEDDING_PROVIDER=mock` keeps hosted embeddings cheap for now
+- `LLM_PROVIDER=kimi`, `LLM_MODEL=kimi-k2.6`, `KIMI_BASE_URL=https://api.moonshot.cn/v1`, and `KIMI_API_KEY` enable the live LLM path
 - `CORS_ORIGINS` should be set to the live Vercel frontend plus localhost
 
 Current hosted backend stack:
@@ -201,7 +201,7 @@ Current hosted backend stack:
 - `Render API`: `https://coval-tb2s.onrender.com`
 - `Neon Postgres`: durable relational storage for the 6-table schema
 - `Qdrant Cloud`: hosted vector store target for chunk embeddings
-- `Kimi K2.6`: provider support is implemented, but the live demo stays on mock LLM until a verified key is set in Render
+- `Kimi K2.6`: real LLM provider through the domestic Moonshot API endpoint
 
 ## Database Schema
 
@@ -247,7 +247,7 @@ Hosted setup notes live in `docs/hosting_setup.md`.
 - personality analysis is intentionally lightweight and still early
 - the eval set is small and hand-labeled
 - the live hosted stack is demo-grade and free-first, so Render cold starts can happen
-- hosted AI output still uses mock LLM responses until real OpenAI or Anthropic credentials are added
+- hosted embeddings still use mock vectors to keep deployment light and cheap
 - OCR and voice ingestion are not implemented beyond clear stubs
 
 ## Future Work

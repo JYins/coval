@@ -7,7 +7,7 @@ import os
 from typing import Any
 
 
-KIMI_BASE_URL = "https://api.moonshot.ai/v1"
+KIMI_BASE_URL = "https://api.moonshot.cn/v1"
 KIMI_MODEL = "kimi-k2.6"
 
 

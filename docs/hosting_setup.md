@@ -40,18 +40,12 @@ For the first hosted version, keep this simple:
 
 - `VECTOR_BACKEND=qdrant`
 - `EMBEDDING_PROVIDER=mock`
-- `LLM_PROVIDER=mock`
-
-That gives a stable hosted backend first while still exercising the Qdrant integration.
-
-To switch the hosted demo to Kimi later:
-
 - `LLM_PROVIDER=kimi`
 - `LLM_MODEL=kimi-k2.6`
-- `KIMI_BASE_URL=https://api.moonshot.ai/v1`
+- `KIMI_BASE_URL=https://api.moonshot.cn/v1`
 - `KIMI_API_KEY` from Kimi / Moonshot
 
-Verify the key locally before changing Render, otherwise `/api/ask` will fail on hosted.
+That gives a stable hosted backend while still exercising the Qdrant integration and a real hosted LLM call. Embeddings stay mock for now to keep the free-first deployment light.
 
 ## Cutover checklist
 
