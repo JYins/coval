@@ -50,3 +50,13 @@ That gives a more stable hosted backend first. Real model providers can come lat
 5. Wait for `/health` to return `status: ok`
 6. Change Vercel frontend `NEXT_PUBLIC_API_BASE_URL` to the Render service URL
 7. Redeploy frontend and test register, login, person CRUD, upload, ask
+
+## Hosted smoke test
+
+After Render is live, run:
+
+```bash
+python scripts/smoke_hosted.py --base-url https://YOUR-RENDER-SERVICE.onrender.com
+```
+
+This creates a throwaway account, adds one person, uploads one conversation, runs ask and briefing, rates the generated interaction, and checks the feedback summary.

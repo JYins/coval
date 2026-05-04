@@ -137,6 +137,12 @@ Run retrieval eval:
 python scripts/run_eval.py --config configs/eval.yaml
 ```
 
+Smoke test a hosted API:
+
+```bash
+python scripts/smoke_hosted.py --base-url https://YOUR-RENDER-SERVICE.onrender.com
+```
+
 Notes:
 
 - `scripts/init_db.py` expects PostgreSQL from `DATABASE_URL`
