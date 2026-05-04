@@ -25,6 +25,7 @@ except ModuleNotFoundError:
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = ROOT_DIR / "configs" / "default.yaml"
+KIMI_MODEL = "kimi-k2.6"
 
 
 def load_default_config(path: Path | None = None) -> dict[str, Any]:
@@ -51,12 +52,17 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
 
     llm_provider = os.getenv("LLM_PROVIDER")
     llm_model = os.getenv("LLM_MODEL")
-    if llm_provider or llm_model:
+    kimi_api_key = os.getenv("KIMI_API_KEY")
+    if llm_provider or llm_model or kimi_api_key:
         llm = dict(config.get("llm", {}))
         if llm_provider:
             llm["provider"] = llm_provider.strip()
         if llm_model:
             llm["model"] = llm_model.strip()
+        elif llm.get("provider") == "kimi":
+            llm["model"] = KIMI_MODEL
+        if kimi_api_key:
+            llm["api_key"] = kimi_api_key.strip()
         config["llm"] = llm
 
     return config

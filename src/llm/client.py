@@ -7,6 +7,10 @@ import os
 from typing import Any
 
 
+KIMI_BASE_URL = "https://api.moonshot.ai/v1"
+KIMI_MODEL = "kimi-k2.6"
+
+
 class LLMClient:
     def __init__(
         self,
@@ -23,6 +27,8 @@ class LLMClient:
             return self._generate_mock(user_prompt)
         if self.provider == "openai":
             return self._generate_openai(system_prompt, user_prompt)
+        if self.provider == "kimi":
+            return self._generate_kimi(system_prompt, user_prompt)
         if self.provider == "anthropic":
             return self._generate_anthropic(system_prompt, user_prompt)
         raise ValueError(f"unknown llm provider: {self.provider}")
@@ -126,6 +132,25 @@ class LLMClient:
             raise RuntimeError("openai returned empty content")
         return text
 
+    def _generate_kimi(self, system_prompt: str, user_prompt: str) -> str:
+        from openai import OpenAI
+
+        client = OpenAI(
+            api_key=self.api_key or os.getenv("KIMI_API_KEY"),
+            base_url=os.getenv("KIMI_BASE_URL", KIMI_BASE_URL),
+        )
+        response = client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        text = response.choices[0].message.content
+        if not text:
+            raise RuntimeError("kimi returned empty content")
+        return text
+
     def _generate_anthropic(self, system_prompt: str, user_prompt: str) -> str:
         from anthropic import Anthropic
 
@@ -147,6 +172,6 @@ def build_llm_client(config: dict[str, Any]) -> LLMClient:
     llm_config = dict(config.get("llm", {}))
     return LLMClient(
         provider=str(llm_config.get("provider", "mock")),
-        model=str(llm_config.get("model", "mock-relationship-v1")),
+        model=str(llm_config.get("model", KIMI_MODEL if llm_config.get("provider") == "kimi" else "mock-relationship-v1")),
         api_key=llm_config.get("api_key"),
     )

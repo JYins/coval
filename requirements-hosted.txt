@@ -8,3 +8,4 @@ passlib[bcrypt]
 python-multipart
 pyyaml
 qdrant-client
+openai

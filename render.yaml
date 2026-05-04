@@ -27,3 +27,9 @@ services:
         value: mock
       - key: LLM_PROVIDER
         value: mock
+      - key: LLM_MODEL
+        value: mock-relationship-v1
+      - key: KIMI_API_KEY
+        sync: false
+      - key: KIMI_BASE_URL
+        value: https://api.moonshot.ai/v1

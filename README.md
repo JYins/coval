@@ -8,8 +8,9 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 
 - Live UI demo: [https://web-tau-lake-89.vercel.app](https://web-tau-lake-89.vercel.app)
 - Live hosted backend API: [https://coval-tb2s.onrender.com](https://coval-tb2s.onrender.com)
+- Hosted health check: [https://coval-tb2s.onrender.com/health](https://coval-tb2s.onrender.com/health)
 - Current status: hosted demo stack with durable PostgreSQL storage
-- Important note: the hosted backend now runs on Render with Neon Postgres and Qdrant Cloud. It still uses mock embedding / mock LLM behavior for the free-first demo path, so the infrastructure is real while the AI provider layer is intentionally conservative for now.
+- Important note: the hosted backend now runs on Render with Neon Postgres and Qdrant Cloud. It still uses mock embedding / mock LLM behavior for the free-first demo path, so the infrastructure is real while the AI provider layer is intentionally conservative for now. Kimi K2.6 support is wired in and can be enabled with Render env vars after the API key is verified.
 
 ![Coval live demo screenshot](docs/images/coval-vercel-home.png)
 
@@ -22,6 +23,7 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 - PostgreSQL persistence is backed by Neon
 - Qdrant Cloud is wired into the hosted retrieval path with mock embeddings
 - hosted smoke test passes across register, login, person CRUD, upload, ask, briefing, rating, and summary
+- Kimi K2.6 provider support is implemented through the OpenAI-compatible Moonshot API client
 
 ## Why This Repo Matters
 
@@ -141,8 +143,10 @@ python scripts/run_eval.py --config configs/eval.yaml
 Smoke test a hosted API:
 
 ```bash
-python scripts/smoke_hosted.py --base-url https://YOUR-RENDER-SERVICE.onrender.com
+python scripts/smoke_hosted.py --base-url https://coval-tb2s.onrender.com
 ```
+
+Latest hosted smoke test passed across register, login, person creation, conversation upload, ask, briefing, rating, and feedback summary.
 
 Notes:
 
@@ -188,7 +192,16 @@ Hosted env notes:
 
 - `APP_ENV=hosted` marks the Render/Neon path
 - `EMBEDDING_PROVIDER=mock` and `LLM_PROVIDER=mock` are the safest free-first defaults for the first hosted cutover
+- switch to Kimi later with `LLM_PROVIDER=kimi`, `LLM_MODEL=kimi-k2.6`, `KIMI_BASE_URL=https://api.moonshot.ai/v1`, and `KIMI_API_KEY`
 - `CORS_ORIGINS` should be set to the live Vercel frontend plus localhost
+
+Current hosted backend stack:
+
+- `Vercel frontend`: `https://web-tau-lake-89.vercel.app`
+- `Render API`: `https://coval-tb2s.onrender.com`
+- `Neon Postgres`: durable relational storage for the 6-table schema
+- `Qdrant Cloud`: hosted vector store target for chunk embeddings
+- `Kimi K2.6`: provider support is implemented, but the live demo stays on mock LLM until a verified key is set in Render
 
 ## Database Schema
 

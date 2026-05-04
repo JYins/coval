@@ -42,7 +42,16 @@ For the first hosted version, keep this simple:
 - `EMBEDDING_PROVIDER=mock`
 - `LLM_PROVIDER=mock`
 
-That gives a more stable hosted backend first while still exercising the Qdrant integration. Real model providers can come later after the storage and API path are stable.
+That gives a stable hosted backend first while still exercising the Qdrant integration.
+
+To switch the hosted demo to Kimi later:
+
+- `LLM_PROVIDER=kimi`
+- `LLM_MODEL=kimi-k2.6`
+- `KIMI_BASE_URL=https://api.moonshot.ai/v1`
+- `KIMI_API_KEY` from Kimi / Moonshot
+
+Verify the key locally before changing Render, otherwise `/api/ask` will fail on hosted.
 
 ## Cutover checklist
 
@@ -63,3 +72,9 @@ python scripts/smoke_hosted.py --base-url https://YOUR-RENDER-SERVICE.onrender.c
 ```
 
 This creates a throwaway account, adds one person, uploads one conversation, runs ask and briefing, rates the generated interaction, and checks the feedback summary.
+
+Current hosted backend:
+
+```bash
+python scripts/smoke_hosted.py --base-url https://coval-tb2s.onrender.com
+```
