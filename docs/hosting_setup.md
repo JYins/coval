@@ -47,6 +47,14 @@ For the first hosted version, keep this simple:
 
 That gives a stable hosted backend while still exercising the Qdrant integration and a real hosted LLM call. Embeddings stay mock for now to keep the free-first deployment light.
 
+After the Render env value is live, `/health` should show:
+
+```json
+{
+  "llm_provider": "kimi"
+}
+```
+
 ## Cutover checklist
 
 1. Create Neon project and copy `DATABASE_URL`

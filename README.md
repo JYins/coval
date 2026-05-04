@@ -10,7 +10,7 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 - Live hosted backend API: [https://coval-tb2s.onrender.com](https://coval-tb2s.onrender.com)
 - Hosted health check: [https://coval-tb2s.onrender.com/health](https://coval-tb2s.onrender.com/health)
 - Current status: hosted demo stack with durable PostgreSQL storage
-- Important note: the hosted backend now runs on Render with Neon Postgres and Qdrant Cloud. Kimi K2.6 support is wired through the domestic Moonshot API endpoint, while embeddings stay in mock mode for the free-first demo path.
+- Important note: the hosted backend now runs on Render with Neon Postgres and Qdrant Cloud. Kimi K2.6 support is wired through the domestic Moonshot API endpoint; the live service will report `llm_provider: kimi` on `/health` once `KIMI_API_KEY` is present in Render. Embeddings stay in mock mode for the free-first demo path.
 
 ![Coval live demo screenshot](docs/images/coval-vercel-home.png)
 
@@ -23,7 +23,7 @@ Coval is an AI-powered relationship memory backend I am building step by step. T
 - PostgreSQL persistence is backed by Neon
 - Qdrant Cloud is wired into the hosted retrieval path with mock embeddings
 - hosted smoke test passes across register, login, person CRUD, upload, ask, briefing, rating, and summary
-- Kimi K2.6 provider support is implemented through the OpenAI-compatible Moonshot API client
+- Kimi K2.6 provider support is implemented through the OpenAI-compatible Moonshot API client, using `https://api.moonshot.cn/v1`
 
 ## Why This Repo Matters
 
@@ -201,7 +201,7 @@ Current hosted backend stack:
 - `Render API`: `https://coval-tb2s.onrender.com`
 - `Neon Postgres`: durable relational storage for the 6-table schema
 - `Qdrant Cloud`: hosted vector store target for chunk embeddings
-- `Kimi K2.6`: real LLM provider through the domestic Moonshot API endpoint
+- `Kimi K2.6`: real LLM provider is implemented through the domestic Moonshot API endpoint; Render needs a valid `KIMI_API_KEY` env value for this to become live
 
 ## Database Schema
 
