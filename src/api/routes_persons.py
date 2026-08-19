@@ -252,7 +252,12 @@ def get_person_briefing(
         raise HTTPException(status_code=404, detail="person not found")
 
     try:
-        result = generate_person_briefing(db, person, top_k=top_k)
+        result = generate_person_briefing(
+            db,
+            person,
+            current_user.id,
+            top_k=top_k,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

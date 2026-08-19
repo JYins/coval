@@ -150,7 +150,13 @@ def main() -> None:
                     db.add(conversation)
                     db.commit()
                     db.refresh(conversation)
-                    save_chunks_for_conversation(db, conversation, person.name)
+                    save_chunks_for_conversation(
+                        db,
+                        conversation,
+                        person.name,
+                        user_id=person.user_id,
+                        person_id=person.id,
+                    )
                     created_conversations += 1
 
             refresh_personality_profile(db, person)

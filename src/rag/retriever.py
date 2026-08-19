@@ -83,11 +83,20 @@ def build_person_summary(person: Person) -> str:
     return "\n".join(lines)
 
 
-def load_saved_chunks(db: Session, person_id: UUID) -> list[dict[str, Any]]:
+def load_saved_chunks(
+    db: Session,
+    *,
+    user_id: UUID,
+    person_id: UUID,
+) -> list[dict[str, Any]]:
     rows = (
         db.query(Chunk, Conversation)
         .join(Conversation, Chunk.conversation_id == Conversation.id)
-        .filter(Conversation.person_id == person_id)
+        .join(Person, Conversation.person_id == Person.id)
+        .filter(
+            Conversation.person_id == person_id,
+            Person.user_id == user_id,
+        )
         .order_by(Conversation.conversation_date.asc(), Chunk.chunk_index.asc())
         .all()
     )
@@ -98,6 +107,7 @@ def load_saved_chunks(db: Session, person_id: UUID) -> list[dict[str, Any]]:
             {
                 "chunk_id": str(chunk.id),
                 "conversation_id": str(conversation.id),
+                "user_id": str(user_id),
                 "person_id": str(person_id),
                 "chunk_text": chunk.chunk_text,
                 "person_name_prefix": chunk.person_name_prefix,
@@ -113,8 +123,18 @@ def build_runtime_chunks(
     db: Session,
     person: Person,
     config: dict[str, Any],
+    *,
+    user_id: UUID,
+    person_id: UUID,
 ) -> list[dict[str, Any]]:
-    saved_chunks = load_saved_chunks(db, person.id)
+    if person.id != person_id or person.user_id != user_id:
+        raise ValueError("person does not match tenant context")
+
+    saved_chunks = load_saved_chunks(
+        db,
+        user_id=user_id,
+        person_id=person_id,
+    )
     if saved_chunks:
         return saved_chunks
 
@@ -147,7 +167,8 @@ def build_runtime_chunks(
             row = dict(chunk)
             row["chunk_id"] = f"{conversation.id}_{chunk['chunk_index']}"
             row["conversation_id"] = str(conversation.id)
-            row["person_id"] = str(person.id)
+            row["user_id"] = str(user_id)
+            row["person_id"] = str(person_id)
             row["embedding_model"] = str(
                 config.get("model_name", DEFAULT_EMBEDDING_MODEL)
             )
@@ -194,21 +215,18 @@ def search_memory(
 
 
 def search_qdrant(
-    chunks: list[dict[str, Any]],
     query: str,
     embedder: Embedder,
     top_k: int,
     config: dict[str, Any],
+    *,
+    user_id: UUID,
+    person_id: UUID,
 ) -> list[dict[str, Any]]:
     store_class = QdrantVectorStore
     if store_class is None:
         from src.rag.vector_store import QdrantVectorStore as store_class
 
-    if not chunks:
-        return []
-
-    texts = [row["chunk_text"] for row in chunks]
-    chunk_vectors = embedder.embed_texts(texts)
     query_vector = embedder.embed_query(query)
 
     vector_config = dict(config.get("vector_store", {}))
@@ -220,10 +238,12 @@ def search_qdrant(
         api_key=vector_config.get("api_key"),
         vector_size=len(query_vector),
     )
-    store.recreate_collection()
-    store.upsert_chunks(chunks, chunk_vectors)
-
-    matches = store.search(query_vector, top_k=top_k)
+    matches = store.search(
+        query_vector,
+        user_id=str(user_id),
+        person_id=str(person_id),
+        top_k=top_k,
+    )
     picked = []
     for rank, row in enumerate(matches, start=1):
         picked_row = dict(row)
@@ -236,6 +256,9 @@ def retrieve_chunks(
     db: Session,
     person: Person,
     query: str,
+    *,
+    user_id: UUID,
+    person_id: UUID,
     config: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     config_data = dict(config or load_default_config())
@@ -243,10 +266,25 @@ def retrieve_chunks(
     model_name = str(config_data.get("model_name", DEFAULT_EMBEDDING_MODEL))
     embedder = Embedder(model_name=model_name)
 
-    chunks = build_runtime_chunks(db, person, config_data)
+    chunks = build_runtime_chunks(
+        db,
+        person,
+        config_data,
+        user_id=user_id,
+        person_id=person_id,
+    )
     vector_backend = str(config_data.get("vector_backend", "memory")).lower()
     if vector_backend == "qdrant":
-        return search_qdrant(chunks, query, embedder, top_k, config_data)
+        if not chunks:
+            return []
+        return search_qdrant(
+            query,
+            embedder,
+            top_k,
+            config_data,
+            user_id=user_id,
+            person_id=person_id,
+        )
     if vector_backend == "memory":
         return search_memory(chunks, query, embedder, top_k)
     raise ValueError(f"unknown vector backend: {vector_backend}")
@@ -295,8 +333,18 @@ def run_retrieval(
     db: Session,
     person: Person,
     question: str,
+    *,
+    user_id: UUID,
+    person_id: UUID,
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    results = retrieve_chunks(db, person, question, config=config)
+    results = retrieve_chunks(
+        db,
+        person,
+        question,
+        user_id=user_id,
+        person_id=person_id,
+        config=config,
+    )
     return build_prompt(person, question, results)
 

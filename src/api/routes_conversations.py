@@ -113,7 +113,13 @@ async def upload_conversation(
         raise HTTPException(status_code=501, detail=str(exc))
 
     conversation = save_conversation(db, person, payload)
-    save_chunks_for_conversation(db, conversation, person.name)
+    save_chunks_for_conversation(
+        db,
+        conversation,
+        person.name,
+        user_id=current_user.id,
+        person_id=person.id,
+    )
     refresh_personality_profile(db, person)
     return build_conversation_response(conversation)
 

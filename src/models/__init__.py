@@ -3,6 +3,12 @@
 from src.models.chunk import Chunk
 from src.models.conversation import Conversation
 from src.models.database import Base, SessionLocal, engine, get_db
+from src.models.agent_workflow import (
+    AgentWorkflow,
+    FollowUpTask,
+    ToolCall,
+    WorkflowTransition,
+)
 from src.models.interaction import Interaction
 from src.models.person import Person
 from src.models.personality_profile import PersonalityProfile
@@ -20,5 +26,9 @@ __all__ = [
     "Chunk",
     "PersonalityProfile",
     "Interaction",
+    "AgentWorkflow",
+    "WorkflowTransition",
+    "ToolCall",
+    "FollowUpTask",
 ]
 

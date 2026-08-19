@@ -1,0 +1,30 @@
+"""State transition rules for agent workflows."""
+
+from __future__ import annotations
+
+
+INGESTED = "INGESTED"
+EXTRACTED = "EXTRACTED"
+IDENTITY_MATCHED = "IDENTITY_MATCHED"
+MEMORY_REVIEW = "MEMORY_REVIEW"
+BRIEFING_OR_DRAFT_READY = "BRIEFING_OR_DRAFT_READY"
+AWAITING_APPROVAL = "AWAITING_APPROVAL"
+EXECUTED = "EXECUTED"
+REJECTED = "REJECTED"
+FAILED = "FAILED"
+
+FINAL_STATES = {EXECUTED, REJECTED, FAILED}
+
+ALLOWED_TRANSITIONS = {
+    INGESTED: {EXTRACTED, FAILED},
+    EXTRACTED: {IDENTITY_MATCHED, FAILED},
+    IDENTITY_MATCHED: {MEMORY_REVIEW, FAILED},
+    MEMORY_REVIEW: {BRIEFING_OR_DRAFT_READY, FAILED},
+    BRIEFING_OR_DRAFT_READY: {AWAITING_APPROVAL, FAILED},
+    AWAITING_APPROVAL: {EXECUTED, REJECTED, FAILED},
+}
+
+
+def check_transition(current: str, next_state: str) -> None:
+    if next_state not in ALLOWED_TRANSITIONS.get(current, set()):
+        raise ValueError(f"invalid workflow transition: {current} -> {next_state}")

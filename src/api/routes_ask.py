@@ -72,6 +72,7 @@ def save_interaction(
 def run_person_question(
     db: Session,
     person: Person,
+    user_id: UUID,
     question: str,
     top_k: int | None = None,
 ) -> dict[str, object]:
@@ -79,7 +80,14 @@ def run_person_question(
     if top_k is not None:
         config["top_k"] = top_k
 
-    rag_payload = run_retrieval(db, person, question, config=config)
+    rag_payload = run_retrieval(
+        db,
+        person,
+        question,
+        user_id=user_id,
+        person_id=person.id,
+        config=config,
+    )
     client = build_llm_client(config)
     answer = client.generate(
         system_prompt=str(rag_payload["system_prompt"]),
@@ -116,6 +124,7 @@ def ask_question(
         result = run_person_question(
             db=db,
             person=person,
+            user_id=current_user.id,
             question=payload.question,
             top_k=payload.top_k,
         )

@@ -59,6 +59,9 @@ The name comes from `covalent bond`. In chemistry, a covalent bond is about shar
 - supports simple 1-5 feedback on generated interactions
 - exposes a small feedback summary per person
 - runs a small retrieval eval set with `Recall@K` and `MRR`
+- runs a durable follow-up workflow with typed tools and explicit state transitions
+- pauses before creating a follow-up task and supports human approve/reject decisions
+- records tool inputs, outputs, latency, errors, approval status, and one trace ID per run
 
 ## Architecture Overview
 
@@ -73,6 +76,18 @@ Storage split:
 - PostgreSQL stores users, persons, conversations, chunks, personality profiles, and interaction logs
 - Qdrant is the vector-store target for chunk embeddings
 - current local default config uses in-memory dense search for easier development, but the Qdrant wrapper is already in the repo
+
+The follow-up agent is an explicit state machine:
+
+```text
+INGESTED -> EXTRACTED -> IDENTITY_MATCHED -> MEMORY_REVIEW
+         -> BRIEFING_OR_DRAFT_READY -> AWAITING_APPROVAL
+         -> EXECUTED | REJECTED | FAILED
+```
+
+Read tools can search person memory, load recent interactions, and inspect a deterministic local calendar stub. The only write tool creates an internal follow-up task, and it cannot run before approval. Workflow requests and task writes are idempotent, decisions use optimistic version checks, and every transition/tool call is stored for inspection. This is implemented locally; it does not claim to send email or modify an external calendar.
+
+Qdrant payloads and queries are filtered by both `user_id` and `person_id`. Querying an existing index no longer recreates or rewrites the collection.
 
 Hosted deployment target:
 
@@ -110,6 +125,7 @@ coval/
 |   |-- ingestion/
 |   |-- llm/
 |   |-- models/
+|   |-- agent/
 |   `-- rag/
 |-- scripts/
 |   |-- init_db.py
@@ -178,6 +194,10 @@ npm run dev
 | `PATCH` | `/api/persons/{person_id}/interactions/{interaction_id}/rating` | rate one generated interaction |
 | `POST` | `/api/conversations` | upload manual or file-based conversation |
 | `POST` | `/api/ask` | ask a question about a person with RAG |
+| `POST` | `/api/workflows/follow-up` | create an idempotent follow-up workflow |
+| `GET` | `/api/workflows/{workflow_id}` | inspect state, trace, tools, and result |
+| `POST` | `/api/workflows/{workflow_id}/prepare` | retrieve context, draft, and pause before the write tool |
+| `POST` | `/api/workflows/{workflow_id}/decision` | approve or reject the pending write tool |
 
 ## Configuration
 
@@ -213,6 +233,10 @@ Current hosted backend stack:
 | `chunks` | retrieval-ready text segments |
 | `personality_profiles` | lightweight structured personality summary |
 | `interactions` | Q&A / briefing history and future feedback hooks |
+| `agent_workflows` | durable workflow state, request fingerprint, trace, and decision |
+| `workflow_transitions` | append-only state transition history |
+| `tool_calls` | typed tool inputs, outputs, approval status, latency, and errors |
+| `follow_up_tasks` | approved internal CRM follow-up tasks |
 
 ## Evaluation
 
@@ -236,6 +260,8 @@ Artifacts:
 - simple route layer: FastAPI routes stay thin and call helper functions
 - person-name-aware chunking: this is the most direct transfer from the sermon retrieval findings
 - mock LLM mode: local wiring should still run before real API keys are plugged in
+- explicit state machine: the reliability rules stay visible and interview-friendly without hiding them behind an agent framework
+- approval-gated mutation: read/draft tools may run automatically, but the task write needs a human decision
 - honest scope: OCR and voice are still stubs because the core retrieval loop matters more first
 
 More detail lives in `docs/design_decisions.md`.
@@ -248,6 +274,10 @@ Hosted setup notes live in `docs/hosting_setup.md`.
 - the eval set is small and hand-labeled
 - the live hosted stack is demo-grade and free-first, so Render cold starts can happen
 - hosted embeddings still use mock vectors to keep deployment light and cheap
+- the follow-up workflow currently writes only an internal CRM task; calendar import is a deterministic local stub
+- durable stage checkpoints and duplicate-delivery safety are covered, but there is no background worker or automatic retry scheduler yet
+- tool audit rows currently keep grounded context snapshots for replay, which increases the amount of relationship data retained
+- PostgreSQL and Qdrant writes are recoverable through index rebuild, but they are not one atomic cross-database transaction
 - OCR and voice ingestion are not implemented beyond clear stubs
 
 ## Future Work
@@ -255,6 +285,7 @@ Hosted setup notes live in `docs/hosting_setup.md`.
 - switch the main path from local memory retrieval to persistent Qdrant indexing
 - add richer chunk persistence during ingestion instead of only runtime chunk building
 - improve personality profile refresh logic with better prompts and stronger parsing
+- add state-based workflow evaluation over approval, rejection, failure, and tenant-isolation cases
 - support voice transcription and screenshot OCR
 - build the separate medical-profile follow-up repo on top of the shared backend ideas
 

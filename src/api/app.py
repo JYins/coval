@@ -13,6 +13,7 @@ from src.api.routes_ask import router as ask_router
 from src.api.routes_conversations import router as conversations_router
 from src.api.routes_persons import router as persons_router
 from src.api.routes_users import router as users_router
+from src.api.routes_workflows import router as workflows_router
 from src.models import Base
 from src.models.database import engine
 from src.rag.retriever import load_default_config
@@ -64,6 +65,12 @@ async def lifespan(_: FastAPI):
     from src.models.person import Person  # noqa: F401
     from src.models.personality_profile import PersonalityProfile  # noqa: F401
     from src.models.user import User  # noqa: F401
+    from src.models.agent_workflow import (  # noqa: F401
+        AgentWorkflow,
+        FollowUpTask,
+        ToolCall,
+        WorkflowTransition,
+    )
 
     Base.metadata.create_all(bind=engine)
     yield
@@ -84,6 +91,7 @@ app.include_router(users_router)
 app.include_router(persons_router)
 app.include_router(conversations_router)
 app.include_router(ask_router)
+app.include_router(workflows_router)
 
 
 @app.get("/")

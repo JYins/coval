@@ -41,7 +41,7 @@ def test_ask_question_returns_answer(monkeypatch):
     monkeypatch.setattr(
         routes_ask,
         "run_person_question",
-        lambda db, person, question, top_k=None: {
+        lambda db, person, user_id, question, top_k=None: {
             "answer": "She seems to like calm places and music chats.",
             "retrieved_chunks": [
                 {
@@ -103,7 +103,7 @@ def test_ask_question_passes_top_k(monkeypatch):
 
     monkeypatch.setattr(routes_ask, "get_user_person", lambda db, user_id, person_id: person)
 
-    def fake_run_person_question(db, person, question, top_k=None):
+    def fake_run_person_question(db, person, user_id, question, top_k=None):
         seen["top_k"] = top_k
         return {
             "answer": "Keep it short and direct.",
@@ -139,7 +139,7 @@ def test_ask_question_returns_bad_request(monkeypatch):
     monkeypatch.setattr(
         routes_ask,
         "run_person_question",
-        lambda db, person, question, top_k=None: (_ for _ in ()).throw(
+        lambda db, person, user_id, question, top_k=None: (_ for _ in ()).throw(
             ValueError("person has no conversations yet")
         ),
     )

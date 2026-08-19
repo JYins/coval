@@ -132,7 +132,7 @@ def test_get_person_briefing(monkeypatch):
     monkeypatch.setattr(
         routes_persons,
         "generate_person_briefing",
-        lambda db, person, top_k=None: {
+        lambda db, person, user_id, top_k=None: {
             "briefing": "Start with music and keep the tone relaxed.",
             "retrieved_chunks": [
                 {

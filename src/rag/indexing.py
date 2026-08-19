@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -62,7 +63,20 @@ def save_chunks_for_conversation(
     conversation: Conversation,
     person_name: str,
     config: dict[str, Any] | None = None,
+    *,
+    user_id: UUID | str,
+    person_id: UUID | str,
 ) -> list[Chunk]:
+    if str(conversation.person_id) != str(person_id):
+        raise ValueError("conversation does not match tenant person")
+    person = (
+        db.query(Person)
+        .filter(Person.id == person_id, Person.user_id == user_id)
+        .first()
+    )
+    if person is None:
+        raise ValueError("person does not match tenant user")
+
     config_data = dict(config or load_default_config())
     rows = build_chunk_rows(conversation, person_name, config_data)
 
@@ -83,13 +97,21 @@ def save_chunks_for_conversation(
     db.commit()
     for chunk in chunks:
         db.refresh(chunk)
-    sync_chunks_to_vector_store(chunks, config_data)
+    sync_chunks_to_vector_store(
+        chunks,
+        config_data,
+        user_id=user_id,
+        person_id=person_id,
+    )
     return chunks
 
 
 def sync_chunks_to_vector_store(
     chunks: list[Chunk],
     config: dict[str, Any],
+    *,
+    user_id: UUID | str,
+    person_id: UUID | str,
 ) -> None:
     if not chunks:
         return
@@ -111,6 +133,8 @@ def sync_chunks_to_vector_store(
             {
                 "chunk_id": str(chunk.id),
                 "conversation_id": str(chunk.conversation_id),
+                "user_id": str(user_id),
+                "person_id": str(person_id),
                 "chunk_text": chunk.chunk_text,
                 "person_name_prefix": chunk.person_name_prefix,
                 "chunk_index": chunk.chunk_index,
@@ -126,6 +150,13 @@ def sync_chunks_to_vector_store(
         vector_size=len(vectors[0]),
     )
     store.ensure_collection()
+    conversation_ids = {str(chunk.conversation_id) for chunk in chunks}
+    for conversation_id in sorted(conversation_ids):
+        store.delete_conversation_chunks(
+            user_id=str(user_id),
+            person_id=str(person_id),
+            conversation_id=conversation_id,
+        )
     store.upsert_chunks(rows, vectors)
 
 
@@ -156,6 +187,8 @@ def rebuild_chunks_for_person(
             conversation=conversation,
             person_name=person.name,
             config=config_data,
+            user_id=person.user_id,
+            person_id=person.id,
         )
         chunk_count += len(chunks)
 

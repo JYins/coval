@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy.orm import Session
 
@@ -46,6 +47,7 @@ def format_profile_summary(profile: PersonalityProfile | None) -> str:
 def generate_person_briefing(
     db: Session,
     person: Person,
+    user_id: UUID,
     top_k: int | None = None,
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -54,7 +56,14 @@ def generate_person_briefing(
         config_data["top_k"] = top_k
 
     question = f"What should I remember before I meet {person.name} next time?"
-    retrieval_data = run_retrieval(db, person, question, config=config_data)
+    retrieval_data = run_retrieval(
+        db,
+        person,
+        question,
+        user_id=user_id,
+        person_id=person.id,
+        config=config_data,
+    )
     profile = load_personality_profile(db, person.id)
 
     prompt = "\n\n".join(
