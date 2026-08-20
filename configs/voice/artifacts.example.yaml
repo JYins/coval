@@ -1,0 +1,68 @@
+# Copy to artifacts.local.yaml before a real G1 run. Keep this example unpinned.
+# Every REQUIRED/TODO value must be replaced and checked against licenses.yaml.
+run_name: REQUIRED/TODO
+verified_at: "2026-08-20"
+metric_config:
+  der_frame_ms: 10
+  der_collar_ms: 250
+  score_overlap: true
+baselines:
+  - baseline_id: funasr-sensevoice-fsmn-campplus
+    description: "FunASR runtime + SenseVoice + FSMN-VAD + CAM++ speaker stack"
+    config_sha256: REQUIRED/TODO
+    artifacts:
+      - artifact_id: funasr-code
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: sensevoice-weights
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: fsmn-vad-weights
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: three-d-speaker-code
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: campplus-weights
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+
+  - baseline_id: sherpa-sensevoice-separate-diarization
+    description: "sherpa-onnx ASR and clustering runtime + official SenseVoice ONNX + pyannote segmentation + ERes2Net speaker embeddings"
+    config_sha256: REQUIRED/TODO
+    artifacts:
+      - artifact_id: sherpa-onnx-runtime
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: sherpa-sensevoice-onnx-weights
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: pyannote-segmentation-3-weights
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: eres2net-weights
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+
+evaluation_data:
+  - artifact_id: aishell-4-original-data
+    corpus_kind: public
+    split_or_subset: REQUIRED/TODO
+    local_path: REQUIRED/TODO
+    source_revision: REQUIRED/TODO
+    source_sha256: REQUIRED/TODO
+    reference_manifest_sha256: REQUIRED/TODO
+    expected_sample_count: REQUIRED/TODO
+  - artifact_id: fictional-crm-meeting-audio
+    corpus_kind: synthetic
+    split_or_subset: REQUIRED/TODO
+    local_path: REQUIRED/TODO
+    source_revision: REQUIRED/TODO
+    source_sha256: REQUIRED/TODO
+    reference_manifest_sha256: REQUIRED/TODO
+    expected_sample_count: REQUIRED/TODO
+
+reporting_rules:
+  - "The two baselines share upstream SenseVoice weights; describe them as runtime/pipeline baselines, not independent ASR models."
+  - "Do not report accuracy, latency, confidence calibration, or n-best claims until a run records pinned artifacts and measured outputs."
+  - "No model or dataset download is part of CI."

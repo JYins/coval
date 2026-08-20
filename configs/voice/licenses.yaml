@@ -1,0 +1,155 @@
+manifest_version: 1
+verified_at: "2026-08-20"
+purpose: >-
+  License and asset inventory for opt-in Voice G1 experiments. Code, model
+  weights, and datasets are separate artifacts and must be checked separately.
+artifacts:
+  - artifact_id: funasr-code
+    kind: code
+    source_url: "https://github.com/modelscope/FunASR"
+    license_name: MIT
+    license_url: "https://github.com/modelscope/FunASR/blob/main/LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "May redistribute only after pinning the exact source revision and preserving the MIT notice."
+    verified_at: "2026-08-20"
+
+  - artifact_id: funasr-model-terms
+    kind: model_weights
+    source_url: "https://github.com/modelscope/FunASR"
+    license_name: FunASR Model License v1.1
+    license_url: "https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Do not redistribute weights until the selected model card and FunASR Model License are reviewed for the intended use."
+    verified_at: "2026-08-20"
+
+  - artifact_id: sensevoice-code
+    kind: code
+    source_url: "https://github.com/QwenAudio/SenseVoice"
+    license_name: MIT
+    license_url: "https://github.com/QwenAudio/SenseVoice/blob/main/LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "May redistribute only after pinning the exact source revision and preserving the MIT notice."
+    verified_at: "2026-08-20"
+
+  - artifact_id: sensevoice-weights
+    kind: model_weights
+    source_url: "https://github.com/QwenAudio/SenseVoice#license"
+    license_name: FunASR Model License v1.1
+    license_url: "https://github.com/modelscope/FunASR/blob/main/MODEL_LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Weights follow the upstream model-card/FunASR terms; do not infer MIT permission from the code repository."
+    verified_at: "2026-08-20"
+
+  - artifact_id: fsmn-vad-weights
+    kind: model_weights
+    source_url: "https://www.modelscope.cn/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch/summary"
+    license_name: Apache-2.0
+    license_url: "https://www.apache.org/licenses/LICENSE-2.0.txt"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "May redistribute only after recording the selected model revision, checksum, and any model-card notices."
+    verified_at: "2026-08-20"
+
+  - artifact_id: three-d-speaker-code
+    kind: code
+    source_url: "https://github.com/modelscope/3D-Speaker"
+    license_name: Apache-2.0
+    license_url: "https://github.com/modelscope/3D-Speaker/blob/main/LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "May redistribute only after pinning the exact source revision and preserving Apache-2.0 notices."
+    verified_at: "2026-08-20"
+
+  - artifact_id: campplus-weights
+    kind: model_weights
+    source_url: "https://www.modelscope.cn/models/iic/speech_campplus_sv_zh-cn_16k-common"
+    license_name: Apache-2.0
+    license_url: "https://www.apache.org/licenses/LICENSE-2.0.txt"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "May redistribute only after recording the selected model revision, checksum, and any model-card notices."
+    verified_at: "2026-08-20"
+
+  - artifact_id: eres2net-weights
+    kind: model_weights
+    source_url: "https://www.modelscope.cn/models/iic/speech_eres2net_base_sv_zh-cn_3dspeaker_16k/summary"
+    license_name: Apache-2.0
+    license_url: "https://www.apache.org/licenses/LICENSE-2.0.txt"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "May redistribute only after recording the selected model revision, checksum, and any model-card notices."
+    verified_at: "2026-08-20"
+
+  - artifact_id: sherpa-onnx-runtime
+    kind: code
+    source_url: "https://github.com/k2-fsa/sherpa-onnx"
+    license_name: Apache-2.0
+    license_url: "https://github.com/k2-fsa/sherpa-onnx/blob/master/LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "May redistribute runtime code only after pinning the exact source revision and preserving Apache-2.0 notices."
+    verified_at: "2026-08-20"
+
+  - artifact_id: sherpa-sensevoice-onnx-weights
+    kind: model_weights
+    source_url: "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17"
+    license_name: Upstream SenseVoice/FunASR terms
+    license_url: "https://huggingface.co/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/blob/2365baeacb507f821a0c8120fcee3d484dba7a07/LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Do not treat the Apache-2.0 sherpa runtime as a license for these weights; comply with the upstream weight terms."
+    verified_at: "2026-08-20"
+
+  - artifact_id: pyannote-segmentation-3-weights
+    kind: model_weights
+    source_url: "https://huggingface.co/pyannote/segmentation-3.0"
+    license_name: MIT (gated access)
+    license_url: "https://huggingface.co/pyannote/segmentation-3.0/blob/main/LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Access requires accepting the provider's gated terms; do not mirror or redistribute weights."
+    verified_at: "2026-08-20"
+
+  - artifact_id: aishell-4-original-data
+    kind: dataset
+    source_url: "https://aishell-4.oss-cn-hangzhou.aliyuncs.com/AISHELL-4%20Data-Specification.pdf"
+    license_name: CC BY-SA 4.0
+    license_url: "https://creativecommons.org/licenses/by-sa/4.0/"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Do not commit, mirror, or redistribute audio; retain attribution and share-alike obligations in any permitted derivative documentation."
+    verified_at: "2026-08-20"
+
+  - artifact_id: openslr-slr111-mirror-metadata
+    kind: dataset
+    source_url: "https://www.openslr.org/111/"
+    license_name: CC BY-SA 4.0
+    license_url: "https://creativecommons.org/licenses/by-sa/4.0/"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Metadata may conflict with other mirrors; do not redistribute audio and resolve terms against the original AISHELL-4 specification before use."
+    verified_at: "2026-08-20"
+
+  - artifact_id: aishell-4-huggingface-metadata-conflict
+    kind: dataset
+    source_url: "https://huggingface.co/datasets/AISHELL/AISHELL-4/tree/main"
+    license_name: Apache-2.0 metadata (conflicts with original CC BY-SA 4.0)
+    license_url: "https://huggingface.co/datasets/AISHELL/AISHELL-4/tree/main"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Do not select this mirror metadata as authority; use the original AISHELL-4 specification and do not redistribute audio."
+    verified_at: "2026-08-20"
+
+  - artifact_id: fictional-crm-meeting-audio
+    kind: dataset
+    source_url: REQUIRED/TODO
+    license_name: REQUIRED/TODO
+    license_url: REQUIRED/TODO
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Do not use or commit synthetic audio until recording/TTS provenance and its license are filled and audited."
+    verified_at: "2026-08-20"

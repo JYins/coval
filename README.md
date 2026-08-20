@@ -64,6 +64,7 @@ The name comes from `covalent bond`. In chemistry, a covalent bond is about shar
 - records tool inputs, outputs, latency, errors, approval status, and one trace ID per run
 - runs a reviewed Voice G0 pipeline with typed speaker turns, transcript alternatives, revisions, and memory candidates
 - writes only human-approved Voice candidates into CRM conversations and retrieval chunks
+- validates pinned Voice model/data licenses and scores normalized local baseline outputs
 
 ## Architecture Overview
 
@@ -307,6 +308,7 @@ Hosted setup notes live in `docs/hosting_setup.md`.
 - tool audit rows currently keep grounded context snapshots for replay, which increases the amount of relationship data retained
 - PostgreSQL and Qdrant writes are recoverable through index rebuild, but they are not one atomic cross-database transaction
 - Voice G0 uses a fixed synthetic fake provider and has no ASR/diarization accuracy or latency claim yet
+- Voice G1 has an evaluation harness and license gate, but remains unmeasured until both local runtimes produce pinned public/synthetic artifacts
 - the legacy `/api/conversations` voice branch stays disabled; reviewed audio uses `/api/voice/jobs`
 - OCR is not implemented beyond a clear stub
 
