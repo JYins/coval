@@ -27,7 +27,10 @@ def load_personality_prompt() -> str:
 def load_person_conversations(db: Session, person_id) -> list[Conversation]:
     return (
         db.query(Conversation)
-        .filter(Conversation.person_id == person_id)
+        .filter(
+            Conversation.person_id == person_id,
+            Conversation.source_type != "voice",
+        )
         .order_by(Conversation.conversation_date.asc(), Conversation.id.asc())
         .all()
     )

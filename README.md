@@ -62,6 +62,8 @@ The name comes from `covalent bond`. In chemistry, a covalent bond is about shar
 - runs a durable follow-up workflow with typed tools and explicit state transitions
 - pauses before creating a follow-up task and supports human approve/reject decisions
 - records tool inputs, outputs, latency, errors, approval status, and one trace ID per run
+- runs a reviewed Voice G0 pipeline with typed speaker turns, transcript alternatives, revisions, and memory candidates
+- writes only human-approved Voice candidates into CRM conversations and retrieval chunks
 
 ## Architecture Overview
 
@@ -88,6 +90,17 @@ INGESTED -> EXTRACTED -> IDENTITY_MATCHED -> MEMORY_REVIEW
 Read tools can search person memory, load recent interactions, and inspect a deterministic local calendar stub. The only write tool creates an internal follow-up task, and it cannot run before approval. Workflow requests and task writes are idempotent, decisions use optimistic version checks, and every transition/tool call is stored for inspection. This is implemented locally; it does not claim to send email or modify an external calendar.
 
 Qdrant payloads and queries are filtered by both `user_id` and `person_id`. Querying an existing index no longer recreates or rewrites the collection.
+
+Voice uses a separate review state path because transcript uncertainty is different from Agent tool execution:
+
+```text
+audio request -> TRANSCRIBING -> REVIEW_READY
+              -> revise / approve / reject
+              -> ApprovedMemoryEvent -> Conversation + chunks
+              -> CANCELED (only before any review decision)
+```
+
+The current provider is a deterministic synthetic fake for G0. It proves retention, review, idempotency, tenant isolation, and the approved-memory integration without pretending that ASR/diarization quality has been measured.
 
 Hosted deployment target:
 
@@ -126,6 +139,7 @@ coval/
 |   |-- llm/
 |   |-- models/
 |   |-- agent/
+|   |-- voice/
 |   `-- rag/
 |-- scripts/
 |   |-- init_db.py
@@ -198,6 +212,11 @@ npm run dev
 | `GET` | `/api/workflows/{workflow_id}` | inspect state, trace, tools, and result |
 | `POST` | `/api/workflows/{workflow_id}/prepare` | retrieve context, draft, and pause before the write tool |
 | `POST` | `/api/workflows/{workflow_id}/decision` | approve or reject the pending write tool |
+| `POST` | `/api/voice/jobs` | process request-scoped audio with the Voice G0 fake provider |
+| `GET` | `/api/voice/jobs/{job_id}` | inspect segments, turns, alternatives, revisions, and candidates |
+| `POST` | `/api/voice/jobs/{job_id}/cancel` | cancel an unreviewed job and stale its pending candidates |
+| `POST` | `/api/voice/jobs/{job_id}/turns/{turn_id}/revisions` | append a human transcript correction |
+| `POST` | `/api/voice/jobs/{job_id}/candidates/{candidate_id}/decision` | approve, reject, or edit a candidate before CRM memory write |
 
 ## Configuration
 
@@ -237,6 +256,14 @@ Current hosted backend stack:
 | `workflow_transitions` | append-only state transition history |
 | `tool_calls` | typed tool inputs, outputs, approval status, latency, and errors |
 | `follow_up_tasks` | approved internal CRM follow-up tasks |
+| `voice_ingestion_jobs` | provider, retention, audio hash, state, and tenant context |
+| `audio_segments` | timestamped logical audio ranges without stored audio bytes |
+| `speaker_turns` | anonymous provider speaker labels and diarization uncertainty |
+| `transcript_alternatives` | immutable ranked transcript hypotheses |
+| `transcript_revisions` | append-only provider and human transcript revisions |
+| `extracted_candidates` | versioned review candidates with inherited uncertainty |
+| `review_decisions` | idempotent final approve/reject decisions |
+| `approved_memory_events` | approved candidate to CRM conversation/index linkage |
 
 ## Evaluation
 
@@ -262,7 +289,8 @@ Artifacts:
 - mock LLM mode: local wiring should still run before real API keys are plugged in
 - explicit state machine: the reliability rules stay visible and interview-friendly without hiding them behind an agent framework
 - approval-gated mutation: read/draft tools may run automatically, but the task write needs a human decision
-- honest scope: OCR and voice are still stubs because the core retrieval loop matters more first
+- reviewed voice memory: unreviewed transcript text never enters CRM conversations, and approved Voice memory is excluded from personality profiling
+- honest scope: Voice G0 uses a fake provider; local ASR and diarization are not claimed before measured baselines
 
 More detail lives in `docs/design_decisions.md`.
 Hosted setup notes live in `docs/hosting_setup.md`.
@@ -278,7 +306,9 @@ Hosted setup notes live in `docs/hosting_setup.md`.
 - durable stage checkpoints and duplicate-delivery safety are covered, but there is no background worker or automatic retry scheduler yet
 - tool audit rows currently keep grounded context snapshots for replay, which increases the amount of relationship data retained
 - PostgreSQL and Qdrant writes are recoverable through index rebuild, but they are not one atomic cross-database transaction
-- OCR and voice ingestion are not implemented beyond clear stubs
+- Voice G0 uses a fixed synthetic fake provider and has no ASR/diarization accuracy or latency claim yet
+- the legacy `/api/conversations` voice branch stays disabled; reviewed audio uses `/api/voice/jobs`
+- OCR is not implemented beyond a clear stub
 
 ## Future Work
 
@@ -286,7 +316,9 @@ Hosted setup notes live in `docs/hosting_setup.md`.
 - add richer chunk persistence during ingestion instead of only runtime chunk building
 - improve personality profile refresh logic with better prompts and stronger parsing
 - add state-based workflow evaluation over approval, rejection, failure, and tenant-isolation cases
-- support voice transcription and screenshot OCR
+- measure the two local Voice runtime/pipeline baselines documented in `docs/voice_pipeline.md`
+- test uncertainty-aware review routing before claiming confidence or n-best improvements
+- support screenshot OCR
 - build the separate medical-profile follow-up repo on top of the shared backend ideas
 
 ## License

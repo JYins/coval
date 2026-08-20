@@ -70,3 +70,22 @@ Medical retrieval has different constraints:
 
 So I kept the medical direction as a design doc for now. If Relationship AI cannot reach a clean, explainable architecture first, then the medical follow-up would be premature.
 
+## ADR: Voice Belongs To The CRM Memory Boundary
+
+Voice is implemented inside Coval because the CRM already owns person identity,
+conversation evidence, review decisions, memory, and follow-up actions. The speech
+pipeline stops at a typed `ApprovedMemoryEvent`; only a human-approved fact or action
+can become a CRM conversation and retrieval chunk.
+
+The first rejected alternative was a separate Voice microservice. That would add a
+deployment boundary before model size, request load, and resource isolation have been
+measured. The second was putting Voice in a future Health project. That would mix an
+unproven speech dependency with a stricter privacy domain and encourage duplicated
+ingestion code. Health may later consume the stable approved-event adapter using only
+public or synthetic examples, but it does not own a second ASR stack.
+
+The G0 provider is deliberately fake and deterministic. It validates schema, retention,
+review, cancellation, retry, tenant isolation, and CRM integration. Local Mandarin ASR
+and diarization become claims only after the G1 experiment produces committed metrics
+from license-audited public and synthetic data.
+

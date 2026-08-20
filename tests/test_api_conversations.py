@@ -144,7 +144,9 @@ def test_upload_voice_not_ready(monkeypatch):
     )
 
     assert response.status_code == 501
-    assert response.json()["detail"] == "voice ingestion is not built yet"
+    assert response.json()["detail"] == (
+        "use POST /api/voice/jobs for reviewed voice ingestion"
+    )
 
 
 def test_upload_file_missing_attachment(monkeypatch):

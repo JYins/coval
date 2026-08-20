@@ -66,6 +66,7 @@ def save_chunks_for_conversation(
     *,
     user_id: UUID | str,
     person_id: UUID | str,
+    commit: bool = True,
 ) -> list[Chunk]:
     if str(conversation.person_id) != str(person_id):
         raise ValueError("conversation does not match tenant person")
@@ -94,9 +95,12 @@ def save_chunks_for_conversation(
         db.add(chunk)
         chunks.append(chunk)
 
-    db.commit()
-    for chunk in chunks:
-        db.refresh(chunk)
+    if commit:
+        db.commit()
+        for chunk in chunks:
+            db.refresh(chunk)
+    else:
+        db.flush()
     sync_chunks_to_vector_store(
         chunks,
         config_data,

@@ -14,6 +14,7 @@ from src.api.routes_conversations import router as conversations_router
 from src.api.routes_persons import router as persons_router
 from src.api.routes_users import router as users_router
 from src.api.routes_workflows import router as workflows_router
+from src.api.routes_voice import router as voice_router
 from src.models import Base
 from src.models.database import engine
 from src.rag.retriever import load_default_config
@@ -71,6 +72,16 @@ async def lifespan(_: FastAPI):
         ToolCall,
         WorkflowTransition,
     )
+    from src.models.voice import (  # noqa: F401
+        ApprovedMemoryEvent,
+        AudioSegment,
+        ExtractedCandidate,
+        ReviewDecision,
+        SpeakerTurn,
+        TranscriptAlternative,
+        TranscriptRevision,
+        VoiceIngestionJob,
+    )
 
     Base.metadata.create_all(bind=engine)
     yield
@@ -92,6 +103,7 @@ app.include_router(persons_router)
 app.include_router(conversations_router)
 app.include_router(ask_router)
 app.include_router(workflows_router)
+app.include_router(voice_router)
 
 
 @app.get("/")

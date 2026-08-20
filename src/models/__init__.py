@@ -13,6 +13,16 @@ from src.models.interaction import Interaction
 from src.models.person import Person
 from src.models.personality_profile import PersonalityProfile
 from src.models.user import User
+from src.models.voice import (
+    ApprovedMemoryEvent,
+    AudioSegment,
+    ExtractedCandidate,
+    ReviewDecision,
+    SpeakerTurn,
+    TranscriptAlternative,
+    TranscriptRevision,
+    VoiceIngestionJob,
+)
 
 
 __all__ = [
@@ -30,5 +40,13 @@ __all__ = [
     "WorkflowTransition",
     "ToolCall",
     "FollowUpTask",
+    "VoiceIngestionJob",
+    "AudioSegment",
+    "SpeakerTurn",
+    "TranscriptAlternative",
+    "TranscriptRevision",
+    "ExtractedCandidate",
+    "ReviewDecision",
+    "ApprovedMemoryEvent",
 ]
 
