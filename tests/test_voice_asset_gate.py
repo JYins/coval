@@ -29,14 +29,18 @@ def inventory():
             {
                 "artifact_id": "public-data",
                 "kind": "dataset",
+                "source_url": "https://example.invalid/public-source",
                 "license_name": "test license",
                 "license_url": "https://example.invalid/public",
+                "redistribution_policy": "test only",
             },
             {
                 "artifact_id": "synthetic-data",
                 "kind": "dataset",
+                "source_url": "https://example.invalid/synthetic-source",
                 "license_name": "test license",
                 "license_url": "https://example.invalid/synthetic",
+                "redistribution_policy": "test only",
             },
         ]
     )
@@ -90,7 +94,7 @@ def run_manifest():
 def test_voice_asset_gate_accepts_two_complete_pinned_baselines():
     summary = validate_run_manifest(inventory(), run_manifest())
 
-    assert summary == {"baselines": 2, "artifacts": 9, "datasets": 2}
+    assert summary == {"baselines": 2, "artifacts": 13, "datasets": 2}
 
 
 def test_voice_asset_gate_rejects_todo_and_incomplete_pipeline():
@@ -103,3 +107,14 @@ def test_voice_asset_gate_rejects_todo_and_incomplete_pipeline():
     manifest["baselines"][1]["artifacts"].pop()
     with pytest.raises(ValueError, match="audited pipeline"):
         validate_run_manifest(inventory(), manifest)
+
+
+def test_voice_asset_gate_rejects_unlicensed_synthetic_data():
+    rows = inventory()
+    synthetic = next(
+        row for row in rows["artifacts"] if row["artifact_id"] == "synthetic-data"
+    )
+    synthetic["source_url"] = "REQUIRED/TODO"
+
+    with pytest.raises(ValueError, match="synthetic-data.source_url"):
+        validate_run_manifest(rows, run_manifest())

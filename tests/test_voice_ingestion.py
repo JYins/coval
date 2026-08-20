@@ -39,11 +39,13 @@ from src.voice.service import (
     VoiceNotFound,
     add_transcript_revision,
     cancel_voice_job,
+    create_manual_candidate,
     create_voice_job,
     decide_candidate,
     finish_memory_index,
     get_voice_job,
     mark_audio_deleted,
+    update_voice_job_status,
 )
 
 
@@ -114,6 +116,9 @@ def test_fake_provider_builds_typed_review_job_and_deletes_audio(db, caplog):
     assert job.provider_version == "1"
     assert job.model_name == "synthetic-fixture"
     assert job.model_revision == "mandarin_two_speaker_v1"
+    assert job.provider_artifacts["synthetic-fixture"]["revision"] == (
+        "mandarin_two_speaker_v1"
+    )
     assert job.trace_id
     assert job.retry_count == 0
     assert not hasattr(job, "audio_bytes")
@@ -137,6 +142,12 @@ def test_fake_provider_builds_typed_review_job_and_deletes_audio(db, caplog):
     assert candidate.speaker_label == "speaker_0"
     assert candidate.source_start_ms == 0
     assert candidate.source_end_ms == 4200
+    assert candidate.extractor_provenance == {
+        "extractor_name": "fake",
+        "extractor_version": "1",
+        "model_name": "synthetic-candidate-fixture",
+        "model_revision": "mandarin_two_speaker_v1",
+    }
     assert "我下周二上午有时间" not in caplog.text
     assert "偏好周二上午开会" not in caplog.text
 
@@ -207,6 +218,8 @@ def test_approve_writes_one_reviewed_memory_and_chunks(db):
     assert event.conversation_id == conversation.id
     assert event.source_audio_sha256 == job.audio_sha256
     assert event.provider == "fake"
+    assert event.provider_artifacts == job.provider_artifacts
+    assert event.extractor_provenance == candidate.extractor_provenance
     assert event.source_spans[0]["speaker_label"] == "speaker_0"
 
 
@@ -525,7 +538,9 @@ def test_cancel_during_transcription_discards_provider_result(db, monkeypatch):
     fake_provider = voice_service.build_voice_provider("fake")
 
     class CancelingProvider:
-        def transcribe(self, audio, *, language, fixture_name):
+        request_identity = {"provider_version": "test-cancel"}
+
+        def transcribe(self, audio, *, language, fixture_name, mime_type):
             other_db = sessionmaker(bind=db.bind)()
             try:
                 current = other_db.query(VoiceIngestionJob).one()
@@ -541,6 +556,7 @@ def test_cancel_during_transcription_discards_provider_result(db, monkeypatch):
                 audio,
                 language=language,
                 fixture_name=fixture_name,
+                mime_type=mime_type,
             )
 
     monkeypatch.setattr(
@@ -719,5 +735,227 @@ def test_voice_api_cancel_and_safe_integrity_error(db):
         assert error.value.status_code == 409
         assert error.value.detail == "voice write conflict"
         assert secret not in error.value.detail
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_manual_extractor_requires_typed_candidate_then_approval(db):
+    user, person = seed_person(db)
+    job, _ = create_voice_job(
+        db,
+        user_id=user.id,
+        person_id=person.id,
+        audio=FAKE_AUDIO,
+        mime_type="audio/wav",
+        language="zh",
+        recorded_at=None,
+        provider_name="fake",
+        fixture_name="mandarin_two_speaker_v1",
+        idempotency_key="manual-extractor-job",
+        extractor_name="manual",
+    )
+    turn = db.query(SpeakerTurn).order_by(SpeakerTurn.turn_index).first()
+
+    assert job.status == "REVIEW_READY"
+    assert job.candidate_extractor == "manual"
+    assert db.query(ExtractedCandidate).count() == 0
+
+    candidate = create_manual_candidate(
+        db,
+        user_id=user.id,
+        job_id=job.id,
+        turn_id=turn.id,
+        candidate_type="stated_preference",
+        content="偏好把会议控制在二十分钟。",
+        source_start_ms=200,
+        source_end_ms=3800,
+        expected_turn_version=turn.version,
+        idempotency_key="manual-candidate-1",
+    )
+    duplicate = create_manual_candidate(
+        db,
+        user_id=user.id,
+        job_id=job.id,
+        turn_id=turn.id,
+        candidate_type="stated_preference",
+        content="偏好把会议控制在二十分钟。",
+        source_start_ms=200,
+        source_end_ms=3800,
+        expected_turn_version=turn.version,
+        idempotency_key="manual-candidate-1",
+    )
+
+    assert duplicate.id == candidate.id
+    assert candidate.confidence is None
+    assert candidate.extractor_provenance["extractor_name"] == "manual"
+    assert db.query(Conversation).count() == 0
+
+    decide_candidate(
+        db,
+        user_id=user.id,
+        job_id=job.id,
+        candidate_id=candidate.id,
+        decision="approve",
+        edited_content=None,
+        expected_version=candidate.version,
+        idempotency_key="approve-manual-candidate",
+    )
+    completed_retry = create_manual_candidate(
+        db,
+        user_id=user.id,
+        job_id=job.id,
+        turn_id=turn.id,
+        candidate_type="stated_preference",
+        content="偏好把会议控制在二十分钟。",
+        source_start_ms=200,
+        source_end_ms=3800,
+        expected_turn_version=turn.version,
+        idempotency_key="manual-candidate-1",
+    )
+
+    event = db.query(ApprovedMemoryEvent).one()
+    assert completed_retry.id == candidate.id
+    assert event.extractor_provenance["extractor_name"] == "manual"
+    assert db.query(Conversation).one().raw_content == candidate.content
+
+
+def test_revision_stales_manual_candidate_bound_to_old_transcript(db):
+    user, person = seed_person(db)
+    job, _ = create_voice_job(
+        db,
+        user_id=user.id,
+        person_id=person.id,
+        audio=FAKE_AUDIO,
+        mime_type="audio/wav",
+        language="zh",
+        recorded_at=None,
+        provider_name="fake",
+        fixture_name="mandarin_two_speaker_v1",
+        idempotency_key="manual-revision-job",
+        extractor_name="manual",
+    )
+    turn = db.query(SpeakerTurn).order_by(SpeakerTurn.turn_index).first()
+    candidate = create_manual_candidate(
+        db,
+        user_id=user.id,
+        job_id=job.id,
+        turn_id=turn.id,
+        candidate_type="stated_fact",
+        content="旧的转写候选。",
+        source_start_ms=None,
+        source_end_ms=None,
+        expected_turn_version=turn.version,
+        idempotency_key="manual-before-revision",
+    )
+
+    add_transcript_revision(
+        db,
+        user_id=user.id,
+        job_id=job.id,
+        turn_id=turn.id,
+        text="修正后的转写。",
+        reason="speaker correction",
+        expected_version=turn.version,
+    )
+
+    db.refresh(candidate)
+    assert candidate.status == "STALE"
+    assert (
+        db.query(ExtractedCandidate)
+        .filter(
+            ExtractedCandidate.revision_id == candidate.revision_id,
+            ExtractedCandidate.status == "PENDING",
+        )
+        .count()
+        == 0
+    )
+
+
+def test_status_refresh_keeps_job_reviewable_when_manual_candidate_is_pending(db):
+    user, person = seed_person(db)
+    job, _ = create_voice_job(
+        db,
+        user_id=user.id,
+        person_id=person.id,
+        audio=FAKE_AUDIO,
+        mime_type="audio/wav",
+        language="zh",
+        recorded_at=None,
+        provider_name="fake",
+        fixture_name="mandarin_two_speaker_v1",
+        idempotency_key="manual-status-refresh-job",
+        extractor_name="manual",
+    )
+    turn = db.query(SpeakerTurn).order_by(SpeakerTurn.turn_index).first()
+    create_manual_candidate(
+        db,
+        user_id=user.id,
+        job_id=job.id,
+        turn_id=turn.id,
+        candidate_type="stated_fact",
+        content="仍需人工审批。",
+        source_start_ms=None,
+        source_end_ms=None,
+        expected_turn_version=turn.version,
+        idempotency_key="manual-pending-status",
+    )
+    job.status = "COMPLETED"
+    db.add(job)
+    db.commit()
+
+    refreshed = update_voice_job_status(db, job)
+
+    assert refreshed.status == "REVIEW_READY"
+    assert db.query(ExtractedCandidate).filter_by(status="PENDING").count() == 1
+
+
+def test_manual_candidate_api_is_idempotent_and_turn_bound(db):
+    user, person = seed_person(db)
+    app.dependency_overrides[get_db] = lambda: db
+    app.dependency_overrides[get_current_user] = lambda: user
+    client = TestClient(app)
+    try:
+        upload = client.post(
+            "/api/voice/jobs",
+            headers={"Idempotency-Key": "api-manual-job"},
+            data={
+                "person_id": str(person.id),
+                "language": "zh",
+                "candidate_extractor": "manual",
+            },
+            files={"audio": ("synthetic.wav", FAKE_AUDIO, "audio/wav")},
+        )
+        assert upload.status_code == 201
+        job = upload.json()
+        assert job["candidate_extractor"] == "manual"
+        assert job["candidates"] == []
+        turn = job["turns"][0]
+        path = f"/api/voice/jobs/{job['id']}/turns/{turn['id']}/candidates"
+        payload = {
+            "candidate_type": "stated_preference",
+            "content": "偏好二十分钟以内的短会。",
+            "source_start_ms": 100,
+            "source_end_ms": 4000,
+            "expected_turn_version": turn["version"],
+        }
+
+        created = client.post(
+            path,
+            headers={"Idempotency-Key": "api-manual-candidate"},
+            json=payload,
+        )
+        duplicate = client.post(
+            path,
+            headers={"Idempotency-Key": "api-manual-candidate"},
+            json=payload,
+        )
+
+        assert created.status_code == 201
+        assert duplicate.status_code == 201
+        assert len(duplicate.json()["candidates"]) == 1
+        candidate = duplicate.json()["candidates"][0]
+        assert candidate["extractor_provenance"]["extractor_name"] == "manual"
+        assert candidate["source_start_ms"] == 100
+        assert candidate["source_end_ms"] == 4000
     finally:
         app.dependency_overrides.clear()

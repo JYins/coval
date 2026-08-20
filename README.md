@@ -63,6 +63,8 @@ The name comes from `covalent bond`. In chemistry, a covalent bond is about shar
 - pauses before creating a follow-up task and supports human approve/reject decisions
 - records tool inputs, outputs, latency, errors, approval status, and one trace ID per run
 - runs a reviewed Voice G0 pipeline with typed speaker turns, transcript alternatives, revisions, and memory candidates
+- keeps ASR/diarization providers separate from candidate extraction and records both provenance chains
+- includes opt-in local FunASR and sherpa-onnx adapters without downloading models in CI
 - writes only human-approved Voice candidates into CRM conversations and retrieval chunks
 - validates pinned Voice model/data licenses and scores normalized local baseline outputs
 
@@ -101,7 +103,11 @@ audio request -> TRANSCRIBING -> REVIEW_READY
               -> CANCELED (only before any review decision)
 ```
 
-The current provider is a deterministic synthetic fake for G0. It proves retention, review, idempotency, tenant isolation, and the approved-memory integration without pretending that ASR/diarization quality has been measured.
+CI uses a deterministic synthetic fake for G0. Optional local FunASR and sherpa-onnx
+adapters implement the same typed contract, but no model or accuracy result is bundled.
+Real providers default to manual candidate selection, and only a later explicit approval
+can write CRM memory. This proves retention, review, idempotency, tenant isolation, and
+provenance without pretending that ASR/diarization quality has been measured.
 
 Hosted deployment target:
 
@@ -160,7 +166,7 @@ Local setup:
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python scripts/init_db.py
+python scripts/apply_migrations.py
 python scripts/seed_data.py
 uvicorn src.api.app:app --reload
 ```
@@ -181,7 +187,7 @@ Latest hosted smoke test passed across register, login, person creation, convers
 
 Notes:
 
-- `scripts/init_db.py` expects PostgreSQL from `DATABASE_URL`
+- `scripts/apply_migrations.py` bootstraps a fresh database and upgrades existing PostgreSQL tables
 - the current default retrieval backend in `configs/default.yaml` is `memory`
 - switch to Qdrant by changing config and running a local Qdrant instance
 - for hosted backend deployment, use `requirements-hosted.txt`, `.env.hosted.example`, and `render.yaml`
@@ -217,6 +223,7 @@ npm run dev
 | `GET` | `/api/voice/jobs/{job_id}` | inspect segments, turns, alternatives, revisions, and candidates |
 | `POST` | `/api/voice/jobs/{job_id}/cancel` | cancel an unreviewed job and stale its pending candidates |
 | `POST` | `/api/voice/jobs/{job_id}/turns/{turn_id}/revisions` | append a human transcript correction |
+| `POST` | `/api/voice/jobs/{job_id}/turns/{turn_id}/candidates` | create an idempotent typed candidate from a reviewed local transcript turn |
 | `POST` | `/api/voice/jobs/{job_id}/candidates/{candidate_id}/decision` | approve, reject, or edit a candidate before CRM memory write |
 
 ## Configuration

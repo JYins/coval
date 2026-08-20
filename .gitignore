@@ -11,6 +11,9 @@ htmlcov/
 .env.*
 !.env.hosted.example
 configs/voice/artifacts.local.yaml
+data/voice/audio/
+data/voice/manifests/local/
+models/voice/
 .vercel/
 .DS_Store
 Thumbs.db

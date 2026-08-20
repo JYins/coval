@@ -255,14 +255,18 @@ def test_voice_eval_cli_writes_a_reproducible_result():
                         {
                             "artifact_id": "fictional-crm-meeting-audio",
                             "kind": "dataset",
+                            "source_url": "https://example.invalid/synthetic-source",
                             "license_name": "fixture license",
                             "license_url": "https://example.invalid/synthetic",
+                            "redistribution_policy": "test only",
                         },
                         {
                             "artifact_id": "public-fixture",
                             "kind": "dataset",
+                            "source_url": "https://example.invalid/public-source",
                             "license_name": "fixture license",
                             "license_url": "https://example.invalid/public",
+                            "redistribution_policy": "test only",
                         },
                     ]
                 }

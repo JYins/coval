@@ -1,0 +1,3 @@
+# Install the PyTorch/torchaudio build for your CPU or CUDA first.
+funasr==1.4.2
+soundfile==0.14.0

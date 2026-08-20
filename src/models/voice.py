@@ -43,9 +43,11 @@ class VoiceIngestionJob(Base):
     person_id = Column(GUID(), ForeignKey("persons.id"), nullable=False, index=True)
     status = Column(String(30), nullable=False, default="RECEIVED")
     provider = Column(String(50), nullable=False)
+    candidate_extractor = Column(String(50), nullable=False, default="fake")
     provider_version = Column(String(100), nullable=True)
     model_name = Column(String(255), nullable=True)
     model_revision = Column(String(255), nullable=True)
+    provider_artifacts = Column(JSON, nullable=False, default=dict)
     fixture_name = Column(String(100), nullable=True)
     language = Column(String(20), nullable=False, default="zh")
     recorded_at = Column(DateTime(timezone=True), nullable=True)
@@ -232,6 +234,11 @@ class ExtractedCandidate(Base):
     __tablename__ = "extracted_candidates"
     __table_args__ = (
         UniqueConstraint("job_id", "candidate_index", name="uq_candidate_job_index"),
+        UniqueConstraint(
+            "job_id",
+            "idempotency_key",
+            name="uq_candidate_job_key",
+        ),
         CheckConstraint(
             "candidate_type IN ('stated_fact', 'stated_preference', 'commitment', 'follow_up_action')",
             name="ck_extracted_candidate_type",
@@ -260,6 +267,9 @@ class ExtractedCandidate(Base):
     content = Column(Text, nullable=False)
     confidence = Column(Float, nullable=True)
     uncertainty = Column(JSON, nullable=False, default=dict)
+    extractor_provenance = Column(JSON, nullable=False, default=dict)
+    idempotency_key = Column(String(255), nullable=True)
+    request_fingerprint = Column(String(64), nullable=True)
     source_turn_id = Column(GUID(), ForeignKey("speaker_turns.id"), nullable=False)
     speaker_label = Column(String(50), nullable=False)
     source_start_ms = Column(Integer, nullable=False)
@@ -374,6 +384,8 @@ class ApprovedMemoryEvent(Base):
     provider = Column(String(50), nullable=False)
     model_name = Column(String(255), nullable=True)
     model_revision = Column(String(255), nullable=True)
+    provider_artifacts = Column(JSON, nullable=False, default=dict)
+    extractor_provenance = Column(JSON, nullable=False, default=dict)
     index_status = Column(String(30), nullable=False, default="PENDING")
     index_runner_id = Column(String(36), nullable=True)
     index_lease_expires_at = Column(DateTime(timezone=True), nullable=True)

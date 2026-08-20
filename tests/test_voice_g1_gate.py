@@ -165,8 +165,10 @@ def build_evidence(root: Path):
             {
                 "artifact_id": f"{kind}-data",
                 "kind": "dataset",
+                "source_url": f"https://example.invalid/{kind}-source",
                 "license_name": "fixture license",
                 "license_url": "https://example.invalid/license",
+                "redistribution_policy": "test only",
             }
             for kind in ("public", "synthetic")
         ]

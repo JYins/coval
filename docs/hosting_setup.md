@@ -20,7 +20,7 @@ The free-first target stack is:
 Use the repo root and the included `render.yaml`.
 
 - build command: `pip install -r requirements-hosted.txt`
-- start command: `uvicorn app:app --host 0.0.0.0 --port $PORT`
+- start command: `python scripts/apply_migrations.py && uvicorn app:app --host 0.0.0.0 --port $PORT`
 - health check: `/health`
 
 ## Required env vars

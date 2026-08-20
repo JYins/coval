@@ -26,6 +26,15 @@ baselines:
       - artifact_id: campplus-weights
         revision: REQUIRED/TODO
         sha256: REQUIRED/TODO
+      - artifact_id: pytorch-runtime
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: torchaudio-runtime
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: soundfile-runtime
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
 
   - baseline_id: sherpa-sensevoice-separate-diarization
     description: "sherpa-onnx ASR and clustering runtime + official SenseVoice ONNX + pyannote segmentation + ERes2Net speaker embeddings"
@@ -41,6 +50,9 @@ baselines:
         revision: REQUIRED/TODO
         sha256: REQUIRED/TODO
       - artifact_id: eres2net-weights
+        revision: REQUIRED/TODO
+        sha256: REQUIRED/TODO
+      - artifact_id: soundfile-runtime
         revision: REQUIRED/TODO
         sha256: REQUIRED/TODO
 

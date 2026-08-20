@@ -31,6 +31,7 @@ from src.voice.service import (
     VoiceNotFound,
     add_transcript_revision,
     cancel_voice_job,
+    create_manual_candidate,
     create_voice_job,
     decide_candidate,
     get_voice_job,
@@ -102,6 +103,8 @@ class ApprovedMemoryEventResponse(BaseModel):
     provider: str
     model_name: str | None
     model_revision: str | None
+    provider_artifacts: dict
+    extractor_provenance: dict
     index_status: str
     indexed_at: datetime | None
     error_code: str | None
@@ -115,6 +118,7 @@ class CandidateResponse(BaseModel):
     content: str
     confidence: float | None
     uncertainty: dict
+    extractor_provenance: dict
     source_turn_id: UUID
     speaker_label: str
     source_start_ms: int
@@ -130,9 +134,11 @@ class VoiceJobResponse(BaseModel):
     person_id: UUID
     status: str
     provider: str
+    candidate_extractor: str
     provider_version: str | None
     model_name: str | None
     model_revision: str | None
+    provider_artifacts: dict
     fixture_name: str | None
     language: str
     recorded_at: datetime | None
@@ -162,6 +168,19 @@ class CandidateDecisionCreate(BaseModel):
     decision: Literal["approve", "reject"]
     edited_content: str | None = Field(default=None, max_length=4000)
     expected_version: int = Field(ge=1)
+
+
+class ManualCandidateCreate(BaseModel):
+    candidate_type: Literal[
+        "stated_fact",
+        "stated_preference",
+        "commitment",
+        "follow_up_action",
+    ]
+    content: str = Field(min_length=1, max_length=4000)
+    source_start_ms: int | None = Field(default=None, ge=0)
+    source_end_ms: int | None = Field(default=None, gt=0)
+    expected_turn_version: int = Field(ge=1)
 
 
 class VoiceJobCancelCreate(BaseModel):
@@ -220,6 +239,8 @@ def build_event_response(
         provider=row.provider,
         model_name=row.model_name,
         model_revision=row.model_revision,
+        provider_artifacts=dict(row.provider_artifacts),
+        extractor_provenance=dict(row.extractor_provenance),
         index_status=row.index_status,
         indexed_at=row.indexed_at,
         error_code=row.error_code,
@@ -252,9 +273,11 @@ def build_voice_job_response(db: Session, job: VoiceIngestionJob) -> VoiceJobRes
         person_id=job.person_id,
         status=job.status,
         provider=job.provider,
+        candidate_extractor=job.candidate_extractor,
         provider_version=job.provider_version,
         model_name=job.model_name,
         model_revision=job.model_revision,
+        provider_artifacts=dict(job.provider_artifacts),
         fixture_name=job.fixture_name,
         language=job.language,
         recorded_at=job.recorded_at,
@@ -306,6 +329,7 @@ def build_voice_job_response(db: Session, job: VoiceIngestionJob) -> VoiceJobRes
                 content=row.content,
                 confidence=row.confidence,
                 uncertainty=dict(row.uncertainty),
+                extractor_provenance=dict(row.extractor_provenance),
                 source_turn_id=row.source_turn_id,
                 speaker_label=row.speaker_label,
                 source_start_ms=row.source_start_ms,
@@ -344,6 +368,7 @@ async def upload_voice_job(
     language: str = Form("zh"),
     recorded_at: datetime | None = Form(None),
     provider: str = Form("fake"),
+    candidate_extractor: str = Form("auto"),
     fixture_name: str = Form("mandarin_two_speaker_v1"),
     audio: UploadFile = File(...),
     idempotency_key: str = Header(
@@ -369,6 +394,7 @@ async def upload_voice_job(
             provider_name=provider,
             fixture_name=fixture_name,
             idempotency_key=idempotency_key,
+            extractor_name=candidate_extractor,
         )
     except (ValueError, IntegrityError, StaleDataError) as exc:
         raise_voice_http_error(db, exc)
@@ -430,6 +456,42 @@ def revise_transcript(
             text=payload.text,
             reason=payload.reason,
             expected_version=payload.expected_version,
+        )
+        job = get_voice_job(db, current_user.id, job_id)
+    except (ValueError, IntegrityError, StaleDataError) as exc:
+        raise_voice_http_error(db, exc)
+    return build_voice_job_response(db, job)
+
+
+@router.post(
+    "/{job_id}/turns/{turn_id}/candidates",
+    response_model=VoiceJobResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_manual_candidate(
+    job_id: UUID,
+    turn_id: UUID,
+    payload: ManualCandidateCreate,
+    idempotency_key: str = Header(
+        alias="Idempotency-Key",
+        min_length=1,
+        max_length=255,
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> VoiceJobResponse:
+    try:
+        create_manual_candidate(
+            db,
+            user_id=current_user.id,
+            job_id=job_id,
+            turn_id=turn_id,
+            candidate_type=payload.candidate_type,
+            content=payload.content,
+            source_start_ms=payload.source_start_ms,
+            source_end_ms=payload.source_end_ms,
+            expected_turn_version=payload.expected_turn_version,
+            idempotency_key=idempotency_key,
         )
         job = get_voice_job(db, current_user.id, job_id)
     except (ValueError, IntegrityError, StaleDataError) as exc:

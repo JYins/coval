@@ -14,6 +14,16 @@ SenseVoice source is MIT, but its weights follow its model-card/upstream FunASR 
 Likewise, sherpa-onnx is Apache-2.0 as a runtime; that does not change the license of
 the SenseVoice ONNX weights it loads.
 
+Direct runtime dependencies are also explicit assets. The FunASR path records PyTorch,
+torchaudio, and SoundFile; the sherpa path records SoundFile in addition to the sherpa
+binary runtime. SoundFile's Python package is BSD-3-Clause, while bundled
+libsndfile has separate LGPL terms that must remain with a redistributed wheel. A runtime
+dependency cannot be omitted from the evidence manifest just because pip installs it.
+The optional FunASR requirements file intentionally does not choose a universal CPU/CUDA
+PyTorch wheel. Preflight checks that the installed PyTorch and torchaudio base versions
+match; each measured G1 run must separately pin the exact selected wheel versions and hashes
+in its local artifact manifest.
+
 The intended G1 comparison contains two runtime/pipeline baselines, not two independent
 ASR models: FunASR + SenseVoice versus sherpa-onnx + the official SenseVoice ONNX
 conversion. They share upstream SenseVoice weights.

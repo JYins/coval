@@ -27,6 +27,11 @@ from src.models.voice import (
 )
 from src.rag.indexing import save_chunks_for_conversation
 from src.rag.retriever import load_default_config
+from src.voice.extractors import (
+    CandidateExtractionResult,
+    CandidateTurnInput,
+    build_candidate_extractor,
+)
 from src.voice.providers import VoiceTranscriptionResult, build_voice_provider
 
 
@@ -74,6 +79,20 @@ def get_voice_job(
     )
 
 
+def get_voice_job_for_update(
+    db: Session,
+    user_id: UUID,
+    job_id: UUID,
+) -> VoiceIngestionJob | None:
+    return (
+        db.query(VoiceIngestionJob)
+        .filter(VoiceIngestionJob.id == job_id, VoiceIngestionJob.user_id == user_id)
+        .populate_existing()
+        .with_for_update()
+        .first()
+    )
+
+
 def validate_voice_request(
     *,
     audio: bytes,
@@ -107,8 +126,16 @@ def create_voice_job(
     provider_name: str,
     fixture_name: str,
     idempotency_key: str,
+    extractor_name: str = "auto",
 ) -> tuple[VoiceIngestionJob, bool]:
     key = idempotency_key.strip()
+    normalized_provider = provider_name.strip().lower()
+    if not normalized_provider:
+        raise ValueError("voice provider is required")
+    resolved_extractor = extractor_name.strip().lower()
+    if resolved_extractor == "auto":
+        resolved_extractor = "fake" if normalized_provider == "fake" else "manual"
+    extractor = build_candidate_extractor(resolved_extractor)
     normalized_mime = mime_type.strip().lower() or "application/octet-stream"
     normalized_language = language.strip().lower()
     validate_voice_request(
@@ -120,6 +147,7 @@ def create_voice_job(
     person = get_user_person(db, user_id, person_id)
     if person is None:
         raise VoiceNotFound("person not found")
+    provider = build_voice_provider(normalized_provider)
 
     audio_sha256 = hashlib.sha256(audio).hexdigest()
     request_payload = {
@@ -128,7 +156,9 @@ def create_voice_job(
         "mime_type": normalized_mime,
         "language": normalized_language,
         "recorded_at": recorded_at.isoformat() if recorded_at else None,
-        "provider": provider_name,
+        "provider": normalized_provider,
+        "provider_identity": provider.request_identity,
+        "candidate_extractor": resolved_extractor,
         "fixture_name": fixture_name,
     }
     fingerprint = build_fingerprint(request_payload)
@@ -148,7 +178,8 @@ def create_voice_job(
         user_id=user_id,
         person_id=person_id,
         status="RECEIVED",
-        provider=provider_name,
+        provider=normalized_provider,
+        candidate_extractor=resolved_extractor,
         fixture_name=fixture_name,
         language=normalized_language,
         recorded_at=recorded_at,
@@ -182,16 +213,23 @@ def create_voice_job(
     db.commit()
     db.refresh(job)
     try:
-        provider = build_voice_provider(provider_name)
         result = provider.transcribe(
             audio,
             language=normalized_language,
             fixture_name=fixture_name,
+            mime_type=normalized_mime,
         )
         job.provider_version = result.provider_version
         job.model_name = result.model_name
         job.model_revision = result.model_revision
-        persist_transcription(db, job, result)
+        job.provider_artifacts = dict(result.artifact_provenance)
+        revisions = persist_transcription(db, job, result)
+        extraction = extractor.extract(
+            build_candidate_inputs(result),
+            language=normalized_language,
+            fixture_name=fixture_name,
+        )
+        persist_candidates(db, job, revisions, extraction)
         job.status = "REVIEW_READY"
     except StaleDataError:
         db.rollback()
@@ -237,7 +275,7 @@ def persist_transcription(
     db: Session,
     job: VoiceIngestionJob,
     result: VoiceTranscriptionResult,
-) -> None:
+) -> dict[int, TranscriptRevision]:
     segments: dict[int, AudioSegment] = {}
     for item in result.segments:
         segment = AudioSegment(
@@ -304,23 +342,66 @@ def persist_transcription(
         db.flush()
         revisions[item.turn_index] = revision
 
-    for item in result.candidates:
+    db.flush()
+    return revisions
+
+
+def build_candidate_inputs(
+    result: VoiceTranscriptionResult,
+) -> list[CandidateTurnInput]:
+    return [
+        CandidateTurnInput(
+            turn_index=item.turn_index,
+            speaker_label=item.speaker_label,
+            start_ms=item.start_ms,
+            end_ms=item.end_ms,
+            text=item.alternatives[0].text,
+            alternatives=[row.text for row in item.alternatives],
+            diarization_confidence=item.diarization_confidence,
+            overlap=item.overlap,
+        )
+        for item in result.turns
+    ]
+
+
+def persist_candidates(
+    db: Session,
+    job: VoiceIngestionJob,
+    revisions: dict[int, TranscriptRevision],
+    result: CandidateExtractionResult,
+    *,
+    next_index: int = 0,
+) -> None:
+    provenance = {
+        "extractor_name": result.extractor_name,
+        "extractor_version": result.extractor_version,
+        "model_name": result.model_name,
+        "model_revision": result.model_revision,
+    }
+    for offset, item in enumerate(result.candidates):
         revision = revisions.get(item.turn_index)
         if revision is None:
             raise ValueError("voice candidate references an unknown turn")
+        turn = revision.turn
+        if (
+            item.source_start_ms < turn.start_ms
+            or item.source_end_ms > turn.end_ms
+        ):
+            raise ValueError("voice candidate source span exceeds its turn")
         db.add(
             ExtractedCandidate(
                 job_id=job.id,
                 revision_id=revision.id,
-                candidate_index=item.candidate_index,
+                candidate_index=next_index + offset,
                 candidate_type=item.candidate_type,
                 content=item.content,
                 confidence=item.confidence,
                 uncertainty=dict(item.uncertainty),
+                extractor_provenance=dict(provenance),
                 source_turn_id=revision.turn_id,
-                speaker_label=revision.turn.speaker_label,
-                source_start_ms=revision.turn.start_ms,
-                source_end_ms=revision.turn.end_ms,
+                speaker_label=turn.speaker_label,
+                source_start_ms=item.source_start_ms,
+                source_end_ms=item.source_end_ms,
                 status="PENDING",
             )
         )
@@ -345,12 +426,13 @@ def add_transcript_revision(
     if reason and len(reason) > 255:
         raise ValueError("revision reason should be at most 255 characters")
 
-    job = get_voice_job(db, user_id, job_id)
+    job = get_voice_job_for_update(db, user_id, job_id)
     if job is None:
         raise VoiceNotFound("voice job not found")
     turn = (
         db.query(SpeakerTurn)
         .filter(SpeakerTurn.id == turn_id, SpeakerTurn.job_id == job.id)
+        .with_for_update()
         .first()
     )
     if turn is None:
@@ -417,27 +499,30 @@ def add_transcript_revision(
     for old in pending:
         old.status = "STALE"
         db.add(old)
-        db.add(
-            ExtractedCandidate(
-                job_id=job.id,
-                revision_id=revision.id,
-                candidate_index=next_index,
-                candidate_type=old.candidate_type,
-                content=cleaned,
-                confidence=1.0,
-                uncertainty={
-                    "source": "human_revision",
-                    "replaces_candidate_id": str(old.id),
-                    "requires_review": True,
-                },
-                source_turn_id=turn.id,
+    extractor = build_candidate_extractor(job.candidate_extractor)
+    extraction = extractor.extract(
+        [
+            CandidateTurnInput(
+                turn_index=turn.turn_index,
                 speaker_label=turn.speaker_label,
-                source_start_ms=turn.start_ms,
-                source_end_ms=turn.end_ms,
-                status="PENDING",
+                start_ms=turn.start_ms,
+                end_ms=turn.end_ms,
+                text=cleaned,
+                alternatives=[cleaned],
+                diarization_confidence=turn.diarization_confidence,
+                overlap=turn.overlap,
             )
-        )
-        next_index += 1
+        ],
+        language=job.language,
+        fixture_name=job.fixture_name or "",
+    )
+    persist_candidates(
+        db,
+        job,
+        {turn.turn_index: revision},
+        extraction,
+        next_index=next_index,
+    )
 
     turn.needs_review = True
     turn.revision_count += 1
@@ -445,6 +530,134 @@ def add_transcript_revision(
     db.commit()
     db.refresh(revision)
     return revision
+
+
+def create_manual_candidate(
+    db: Session,
+    *,
+    user_id: UUID,
+    job_id: UUID,
+    turn_id: UUID,
+    candidate_type: str,
+    content: str,
+    source_start_ms: int | None,
+    source_end_ms: int | None,
+    expected_turn_version: int,
+    idempotency_key: str,
+) -> ExtractedCandidate:
+    allowed_types = {
+        "stated_fact",
+        "stated_preference",
+        "commitment",
+        "follow_up_action",
+    }
+    normalized_type = candidate_type.strip().lower()
+    cleaned = content.strip()
+    key = idempotency_key.strip()
+    if normalized_type not in allowed_types:
+        raise ValueError("unsupported voice candidate type")
+    if not cleaned or len(cleaned) > 4000:
+        raise ValueError("candidate content should contain 1 to 4000 characters")
+    if not key or len(key) > 255:
+        raise ValueError("Idempotency-Key should contain 1 to 255 characters")
+
+    job = get_voice_job_for_update(db, user_id, job_id)
+    if job is None:
+        raise VoiceNotFound("voice job not found")
+    existing = (
+        db.query(ExtractedCandidate)
+        .filter(
+            ExtractedCandidate.job_id == job.id,
+            ExtractedCandidate.idempotency_key == key,
+        )
+        .first()
+    )
+    turn = (
+        db.query(SpeakerTurn)
+        .filter(SpeakerTurn.id == turn_id, SpeakerTurn.job_id == job.id)
+        .with_for_update()
+        .first()
+    )
+    if turn is None:
+        raise VoiceNotFound("speaker turn not found")
+    start_ms = turn.start_ms if source_start_ms is None else source_start_ms
+    end_ms = turn.end_ms if source_end_ms is None else source_end_ms
+    if start_ms < turn.start_ms or end_ms > turn.end_ms or end_ms <= start_ms:
+        raise ValueError("candidate source span should stay inside its speaker turn")
+    payload = {
+        "turn_id": str(turn_id),
+        "candidate_type": normalized_type,
+        "content": cleaned,
+        "source_start_ms": start_ms,
+        "source_end_ms": end_ms,
+        "expected_turn_version": expected_turn_version,
+    }
+    fingerprint = build_fingerprint(payload)
+    if existing is not None:
+        if existing.request_fingerprint != fingerprint:
+            raise VoiceConflict("Idempotency-Key was used for another candidate")
+        return existing
+    if job.candidate_extractor != "manual":
+        raise VoiceConflict("manual candidates require the manual extractor")
+    if job.status != "REVIEW_READY":
+        raise VoiceConflict(f"{job.status.lower()} voice job cannot add candidates")
+    if turn.version != expected_turn_version:
+        raise VoiceConflict(
+            f"speaker turn version changed: expected {expected_turn_version}, "
+            f"got {turn.version}"
+        )
+    revision = (
+        db.query(TranscriptRevision)
+        .filter(TranscriptRevision.turn_id == turn.id)
+        .order_by(TranscriptRevision.revision_no.desc())
+        .first()
+    )
+    next_index = (
+        db.query(ExtractedCandidate)
+        .filter(ExtractedCandidate.job_id == job.id)
+        .count()
+    )
+    row = ExtractedCandidate(
+        job_id=job.id,
+        revision_id=revision.id,
+        candidate_index=next_index,
+        candidate_type=normalized_type,
+        content=cleaned,
+        confidence=None,
+        uncertainty={"source": "human_candidate", "requires_review": True},
+        extractor_provenance={
+            "extractor_name": "manual",
+            "extractor_version": "1",
+            "model_name": "human-review",
+            "model_revision": "1",
+            "user_id": str(user_id),
+        },
+        idempotency_key=key,
+        request_fingerprint=fingerprint,
+        source_turn_id=turn.id,
+        speaker_label=turn.speaker_label,
+        source_start_ms=start_ms,
+        source_end_ms=end_ms,
+        status="PENDING",
+    )
+    db.add(row)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = (
+            db.query(ExtractedCandidate)
+            .filter(
+                ExtractedCandidate.job_id == job.id,
+                ExtractedCandidate.idempotency_key == key,
+            )
+            .one_or_none()
+        )
+        if existing is None or existing.request_fingerprint != fingerprint:
+            raise
+        return existing
+    db.refresh(row)
+    return row
 
 
 def decide_candidate(
@@ -564,6 +777,8 @@ def decide_candidate(
                 provider=job.provider,
                 model_name=job.model_name,
                 model_revision=job.model_revision,
+                provider_artifacts=dict(job.provider_artifacts),
+                extractor_provenance=dict(candidate.extractor_provenance),
                 index_status="PENDING",
             )
         )
@@ -738,7 +953,7 @@ def cancel_voice_job(
     job_id: UUID,
     expected_version: int,
 ) -> VoiceIngestionJob:
-    job = get_voice_job(db, user_id, job_id)
+    job = get_voice_job_for_update(db, user_id, job_id)
     if job is None:
         raise VoiceNotFound("voice job not found")
     if job.status == "CANCELED":
@@ -771,30 +986,37 @@ def update_voice_job_status(
     db: Session,
     job: VoiceIngestionJob,
 ) -> VoiceIngestionJob:
+    locked_job = get_voice_job_for_update(db, job.user_id, job.id)
+    if locked_job is None:
+        raise VoiceNotFound("voice job not found")
     pending_count = (
         db.query(ExtractedCandidate)
         .filter(
-            ExtractedCandidate.job_id == job.id,
+            ExtractedCandidate.job_id == locked_job.id,
             ExtractedCandidate.status == "PENDING",
         )
         .count()
     )
     if pending_count:
-        return job
+        locked_job.status = "REVIEW_READY"
+        db.add(locked_job)
+        db.commit()
+        db.refresh(locked_job)
+        return locked_job
 
     events = (
         db.query(ApprovedMemoryEvent)
-        .filter(ApprovedMemoryEvent.job_id == job.id)
+        .filter(ApprovedMemoryEvent.job_id == locked_job.id)
         .all()
     )
     statuses = {event.index_status for event in events}
     if statuses & {"PENDING", "INDEXING"}:
-        job.status = "REVIEW_READY"
+        locked_job.status = "REVIEW_READY"
     elif "INDEX_FAILED" in statuses:
-        job.status = "COMPLETED_WITH_ERRORS"
+        locked_job.status = "COMPLETED_WITH_ERRORS"
     else:
-        job.status = "COMPLETED"
-    db.add(job)
+        locked_job.status = "COMPLETED"
+    db.add(locked_job)
     db.commit()
-    db.refresh(job)
-    return job
+    db.refresh(locked_job)
+    return locked_job

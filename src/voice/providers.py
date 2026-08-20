@@ -1,18 +1,11 @@
-"""Voice provider contract and deterministic G0 fake provider."""
+"""Voice transcription contract and deterministic G0 fake provider."""
 
 from __future__ import annotations
 
-from typing import Literal
+import hashlib
+from functools import lru_cache
 
 from pydantic import BaseModel, Field, model_validator
-
-
-CandidateType = Literal[
-    "stated_fact",
-    "stated_preference",
-    "commitment",
-    "follow_up_action",
-]
 
 
 class VoiceAlternativeResult(BaseModel):
@@ -51,27 +44,22 @@ class VoiceTurnResult(BaseModel):
         return self
 
 
-class VoiceCandidateResult(BaseModel):
-    candidate_index: int = Field(ge=0)
-    turn_index: int = Field(ge=0)
-    candidate_type: CandidateType
-    content: str = Field(min_length=1, max_length=4000)
-    confidence: float | None = Field(default=None, ge=0, le=1)
-    uncertainty: dict[str, object] = Field(default_factory=dict)
-
-
 class VoiceTranscriptionResult(BaseModel):
     provider_version: str = Field(min_length=1)
     model_name: str = Field(min_length=1)
     model_revision: str = Field(min_length=1)
+    artifact_provenance: dict[str, dict[str, str]] = Field(default_factory=dict)
     segments: list[VoiceSegmentResult] = Field(min_length=1)
     turns: list[VoiceTurnResult] = Field(min_length=1)
-    candidates: list[VoiceCandidateResult] = Field(min_length=1)
 
 
 class FakeVoiceProvider:
     name = "fake"
     version = "1"
+
+    @property
+    def request_identity(self) -> dict[str, object]:
+        return {"provider_version": self.version}
 
     def transcribe(
         self,
@@ -79,6 +67,7 @@ class FakeVoiceProvider:
         *,
         language: str,
         fixture_name: str,
+        mime_type: str = "audio/wav",
     ) -> VoiceTranscriptionResult:
         if not audio:
             raise ValueError("audio should not be empty")
@@ -91,6 +80,14 @@ class FakeVoiceProvider:
             provider_version=self.version,
             model_name="synthetic-fixture",
             model_revision="mandarin_two_speaker_v1",
+            artifact_provenance={
+                "synthetic-fixture": {
+                    "revision": "mandarin_two_speaker_v1",
+                    "sha256": hashlib.sha256(
+                        b"mandarin_two_speaker_v1"
+                    ).hexdigest(),
+                }
+            },
             segments=[
                 VoiceSegmentResult(
                     segment_index=0,
@@ -141,37 +138,20 @@ class FakeVoiceProvider:
                     ],
                 ),
             ],
-            candidates=[
-                VoiceCandidateResult(
-                    candidate_index=0,
-                    turn_index=0,
-                    candidate_type="stated_preference",
-                    content="偏好周二上午开会，并把会议控制在二十分钟。",
-                    confidence=0.71,
-                    uncertainty={
-                        "asr_alternatives": 2,
-                        "speaker_ambiguous": True,
-                        "requires_review": True,
-                    },
-                ),
-                VoiceCandidateResult(
-                    candidate_index=1,
-                    turn_index=1,
-                    candidate_type="commitment",
-                    content="会提前发送一份简短议程。",
-                    confidence=0.88,
-                    uncertainty={
-                        "asr_alternatives": 1,
-                        "speaker_ambiguous": False,
-                        "requires_review": True,
-                    },
-                ),
-            ],
         )
 
 
+@lru_cache(maxsize=3)
 def build_voice_provider(provider: str):
     normalized = provider.strip().lower()
     if normalized == "fake":
         return FakeVoiceProvider()
+    if normalized == "funasr":
+        from src.voice.local_providers import FunASRVoiceProvider
+
+        return FunASRVoiceProvider.from_env()
+    if normalized == "sherpa":
+        from src.voice.local_providers import SherpaVoiceProvider
+
+        return SherpaVoiceProvider.from_env()
     raise ValueError(f"voice provider is not available: {provider}")

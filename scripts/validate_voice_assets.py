@@ -20,12 +20,16 @@ EXPECTED_BASELINE_ARTIFACTS = {
         "fsmn-vad-weights",
         "three-d-speaker-code",
         "campplus-weights",
+        "pytorch-runtime",
+        "torchaudio-runtime",
+        "soundfile-runtime",
     },
     "sherpa-sensevoice-separate-diarization": {
         "sherpa-onnx-runtime",
         "sherpa-sensevoice-onnx-weights",
         "pyannote-segmentation-3-weights",
         "eres2net-weights",
+        "soundfile-runtime",
     },
 }
 
@@ -126,6 +130,13 @@ def validate_run_manifest(
         row = known.get(artifact_id)
         if row is None or row.get("kind") != "dataset":
             raise ValueError(f"unknown Voice dataset artifact: {artifact_id}")
+        require_text(row.get("source_url"), f"{artifact_id}.source_url")
+        require_text(row.get("license_name"), f"{artifact_id}.license_name")
+        require_text(row.get("license_url"), f"{artifact_id}.license_url")
+        require_text(
+            row.get("redistribution_policy"),
+            f"{artifact_id}.redistribution_policy",
+        )
         require_text(dataset.get("split_or_subset"), f"{artifact_id}.split_or_subset")
         require_text(dataset.get("local_path"), f"{artifact_id}.local_path")
         require_text(dataset.get("source_revision"), f"{artifact_id}.source_revision")

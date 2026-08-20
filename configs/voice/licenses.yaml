@@ -24,6 +24,36 @@ artifacts:
     redistribution_policy: "Do not redistribute weights until the selected model card and FunASR Model License are reviewed for the intended use."
     verified_at: "2026-08-20"
 
+  - artifact_id: pytorch-runtime
+    kind: code
+    source_url: "https://github.com/pytorch/pytorch"
+    license_name: "PyTorch distribution: BSD-style core plus bundled third-party licenses"
+    license_url: "https://github.com/pytorch/pytorch/blob/main/LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Pin the exact wheel/source build and preserve its LICENSE, NOTICE, and bundled third-party license files; CUDA components may add separate terms."
+    verified_at: "2026-08-20"
+
+  - artifact_id: torchaudio-runtime
+    kind: code
+    source_url: "https://github.com/pytorch/audio"
+    license_name: BSD-style
+    license_url: "https://github.com/pytorch/audio/blob/main/LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Pin the exact build matching PyTorch and preserve the upstream notices."
+    verified_at: "2026-08-20"
+
+  - artifact_id: soundfile-runtime
+    kind: code
+    source_url: "https://github.com/bastibe/python-soundfile"
+    license_name: BSD-3-Clause (bundled libsndfile has separate LGPL terms)
+    license_url: "https://github.com/bastibe/python-soundfile/blob/master/LICENSE"
+    revision: REQUIRED/TODO
+    sha256: REQUIRED/TODO
+    redistribution_policy: "Pin the exact wheel and retain both python-soundfile and bundled libsndfile licensing notices."
+    verified_at: "2026-08-20"
+
   - artifact_id: sensevoice-code
     kind: code
     source_url: "https://github.com/QwenAudio/SenseVoice"
