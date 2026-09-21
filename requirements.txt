@@ -23,5 +23,5 @@ pandas
 # dev
 pytest
 httpx
-ruff
+ruff==0.15.7
 
