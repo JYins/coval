@@ -48,11 +48,26 @@ class LLMClient:
                 question = line.split("Question:", 1)[1].strip()
                 break
 
-        return (
-            "Mock answer for now. Based on the retrieved notes, "
-            f"the main thing to focus on is: {question}. "
-            "This mode is mainly for local backend wiring before real API keys."
-        )
+        evidence = []
+        for line in user_prompt.splitlines():
+            if not line.startswith("[") or " text=" not in line:
+                continue
+            label = line.split("]", 1)[0] + "]"
+            text = line.split(" text=", 1)[1].strip()
+            evidence.append(f"{label} {text}")
+
+        if evidence:
+            return "\n".join(
+                [
+                    "演示模式回答（基于检索片段）：",
+                    *evidence,
+                    "",
+                    f"问题：{question}",
+                    "以上编号对应页面下方的引用片段。",
+                ]
+            )
+
+        return f"演示模式暂时没有找到可引用的上下文。问题：{question}"
 
     def _mock_personality_json(self, user_prompt: str) -> str:
         lower_text = user_prompt.lower()
