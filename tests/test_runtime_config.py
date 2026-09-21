@@ -67,6 +67,7 @@ def test_apply_env_overrides_defaults_kimi_model(monkeypatch):
 
 def test_apply_env_overrides_reads_kimi_key_without_provider_change(monkeypatch):
     monkeypatch.setenv("APP_ENV", "hosted")
+    monkeypatch.setenv("HOSTED_REAL_LLM", "true")
     monkeypatch.setenv("KIMI_API_KEY", "kimi-secret")
 
     config = apply_env_overrides({"llm": {"provider": "mock"}})
@@ -86,3 +87,17 @@ def test_hosted_runtime_uses_mock_when_kimi_key_is_missing(monkeypatch):
 
     assert config["llm"]["provider"] == "mock"
     assert config["llm"]["model"] == "mock-relationship-v1"
+
+
+def test_hosted_runtime_requires_opt_in_for_real_llm(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "hosted")
+    monkeypatch.setenv("LLM_PROVIDER", "kimi")
+    monkeypatch.setenv("LLM_MODEL", "kimi-k2.6")
+    monkeypatch.setenv("KIMI_API_KEY", "configured-but-disabled")
+    monkeypatch.delenv("HOSTED_REAL_LLM", raising=False)
+
+    config = apply_env_overrides({"llm": {}})
+
+    assert config["llm"]["provider"] == "mock"
+    assert config["llm"]["model"] == "mock-relationship-v1"
+    assert "api_key" not in config["llm"]

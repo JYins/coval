@@ -55,26 +55,26 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     kimi_api_key = os.getenv("KIMI_API_KEY")
     if llm_provider or llm_model or kimi_api_key:
         llm = dict(config.get("llm", {}))
-        hosted_without_kimi_key = (
+        hosted_demo_mode = (
             os.getenv("APP_ENV", "").strip() == "hosted"
-            and llm_provider == "kimi"
-            and not kimi_api_key
+            and os.getenv("HOSTED_REAL_LLM", "").strip().lower()
+            not in {"1", "true", "yes"}
         )
-        if hosted_without_kimi_key:
-            # keep the public demo usable until a hosted Kimi key is configured
+        if hosted_demo_mode:
+            # real hosted LLM is opt-in so the public demo stays predictable
             llm["provider"] = "mock"
             llm["model"] = "mock-relationship-v1"
             llm.pop("api_key", None)
         elif llm_provider:
             llm["provider"] = llm_provider.strip()
-        if kimi_api_key and os.getenv("APP_ENV", "").strip() == "hosted":
+        if kimi_api_key and not hosted_demo_mode:
             # hosted demo should use the real provider once the key exists
             llm["provider"] = "kimi"
-        if llm_model and not hosted_without_kimi_key:
+        if llm_model and not hosted_demo_mode:
             llm["model"] = llm_model.strip()
         elif llm.get("provider") == "kimi":
             llm["model"] = KIMI_MODEL
-        if kimi_api_key:
+        if kimi_api_key and not hosted_demo_mode:
             llm["api_key"] = kimi_api_key.strip()
         config["llm"] = llm
 
