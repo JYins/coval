@@ -55,12 +55,22 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     kimi_api_key = os.getenv("KIMI_API_KEY")
     if llm_provider or llm_model or kimi_api_key:
         llm = dict(config.get("llm", {}))
-        if llm_provider:
+        hosted_without_kimi_key = (
+            os.getenv("APP_ENV", "").strip() == "hosted"
+            and llm_provider == "kimi"
+            and not kimi_api_key
+        )
+        if hosted_without_kimi_key:
+            # keep the public demo usable until a hosted Kimi key is configured
+            llm["provider"] = "mock"
+            llm["model"] = "mock-relationship-v1"
+            llm.pop("api_key", None)
+        elif llm_provider:
             llm["provider"] = llm_provider.strip()
         if kimi_api_key and os.getenv("APP_ENV", "").strip() == "hosted":
             # hosted demo should use the real provider once the key exists
             llm["provider"] = "kimi"
-        if llm_model:
+        if llm_model and not hosted_without_kimi_key:
             llm["model"] = llm_model.strip()
         elif llm.get("provider") == "kimi":
             llm["model"] = KIMI_MODEL

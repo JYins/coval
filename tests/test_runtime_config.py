@@ -74,3 +74,15 @@ def test_apply_env_overrides_reads_kimi_key_without_provider_change(monkeypatch)
     assert config["llm"]["provider"] == "kimi"
     assert config["llm"]["model"] == "kimi-k2.6"
     assert config["llm"]["api_key"] == "kimi-secret"
+
+
+def test_hosted_runtime_uses_mock_when_kimi_key_is_missing(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "hosted")
+    monkeypatch.setenv("LLM_PROVIDER", "kimi")
+    monkeypatch.setenv("LLM_MODEL", "kimi-k2.6")
+    monkeypatch.delenv("KIMI_API_KEY", raising=False)
+
+    config = apply_env_overrides({"llm": {"provider": "mock"}})
+
+    assert config["llm"]["provider"] == "mock"
+    assert config["llm"]["model"] == "mock-relationship-v1"
