@@ -26,9 +26,9 @@ services:
       - key: EMBEDDING_PROVIDER
         value: mock
       - key: LLM_PROVIDER
-        value: kimi
+        value: mock
       - key: LLM_MODEL
-        value: kimi-k2.6
+        value: mock-relationship-v1
       - key: KIMI_API_KEY
         sync: false
       - key: KIMI_BASE_URL
