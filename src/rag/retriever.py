@@ -37,7 +37,14 @@ def load_default_config(path: Path | None = None) -> dict[str, Any]:
 
 def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
     vector_backend = os.getenv("VECTOR_BACKEND")
-    if vector_backend:
+    hosted_demo_vector = (
+        os.getenv("APP_ENV", "").strip() == "hosted"
+        and os.getenv("HOSTED_REAL_VECTOR", "").strip().lower()
+        not in {"1", "true", "yes"}
+    )
+    if hosted_demo_vector:
+        config["vector_backend"] = "memory"
+    elif vector_backend:
         config["vector_backend"] = vector_backend.strip()
 
     qdrant_url = os.getenv("QDRANT_URL")

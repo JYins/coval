@@ -57,6 +57,11 @@ def load_effective_llm_provider() -> str:
     return str(llm_config.get("provider", "mock"))
 
 
+def load_effective_vector_backend() -> str:
+    config = load_default_config()
+    return str(config.get("vector_backend", "memory"))
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # import models here so metadata sees every table
@@ -118,6 +123,7 @@ def read_health() -> dict[str, object]:
         "app_env": load_runtime_mode(),
         "database": detect_database_driver(),
         "embedding_provider": os.getenv("EMBEDDING_PROVIDER", "sentence-transformers").strip(),
+        "vector_backend": load_effective_vector_backend(),
         "llm_provider": load_effective_llm_provider(),
         "qdrant_host": load_host_name(),
     }

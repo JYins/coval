@@ -101,3 +101,23 @@ def test_hosted_runtime_requires_opt_in_for_real_llm(monkeypatch):
     assert config["llm"]["provider"] == "mock"
     assert config["llm"]["model"] == "mock-relationship-v1"
     assert "api_key" not in config["llm"]
+
+
+def test_hosted_runtime_defaults_to_in_process_retrieval(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "hosted")
+    monkeypatch.setenv("VECTOR_BACKEND", "qdrant")
+    monkeypatch.delenv("HOSTED_REAL_VECTOR", raising=False)
+
+    config = apply_env_overrides({"vector_backend": "qdrant"})
+
+    assert config["vector_backend"] == "memory"
+
+
+def test_hosted_runtime_can_opt_in_to_qdrant(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "hosted")
+    monkeypatch.setenv("HOSTED_REAL_VECTOR", "true")
+    monkeypatch.setenv("VECTOR_BACKEND", "qdrant")
+
+    config = apply_env_overrides({"vector_backend": "memory"})
+
+    assert config["vector_backend"] == "qdrant"
